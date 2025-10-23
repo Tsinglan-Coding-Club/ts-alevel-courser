@@ -1,0 +1,552 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home - Computer Science{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Units横向布局 */
+    .units-container {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .units-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .unit-btn {
+        min-width: 70px;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-weight: 600;
+        border: 2px solid #dee2e6;
+        transition: all 0.2s;
+    }
+    .unit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .unit-btn.active {
+        border-color: #0d6efd;
+        background: #0d6efd;
+        color: white;
+    }
+    .pastpaper-btn {
+        background: #17a2b8;
+        color: white;
+        border-color: #17a2b8;
+    }
+    .pastpaper-btn.active {
+        background: #138496;
+        border-color: #138496;
+    }
+    
+    /* 主内容区域 */
+    .main-content {
+        display: flex;
+        gap: 15px;
+    }
+    
+    /* Questions面板 - 缩小宽度 */
+    .questions-panel {
+        width: 250px;
+        flex-shrink: 0;
+    }
+    .questions-panel .card {
+        height: max(calc(100vh - 280px), 800px);
+        min-height: 800px;
+    }
+    .question-list {
+        max-height: max(calc(100vh - 380px), 700px);
+        overflow-y: auto;
+        padding: 10px;
+    }
+    .question-item {
+        padding: 8px 10px;
+        margin-bottom: 6px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+    .question-item:hover {
+        background: #e9ecef;
+    }
+    .question-item.active {
+        background: #0d6efd;
+        color: white;
+    }
+    .question-item.completed {
+        background: #d4edda;
+        border-left: 3px solid #28a745;
+    }
+    .question-item.saved {
+        background: #fff3cd;
+        border-left: 3px solid #ffc107;
+    }
+    .question-item.completed.active,
+    .question-item.saved.active {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    /* PDF Viewer - 扩大空间 */
+    .pdf-panel {
+        flex: 1;
+    }
+    .pdf-panel .card {
+        height: max(calc(100vh - 280px), 800px);
+        min-height: 800px;
+    }
+    .pdf-viewer-container {
+        height: calc(100% - 120px);
+        min-height: 700px;
+        overflow: auto;
+        background: #525659;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .pdf-placeholder {
+        text-align: center;
+        color: #6c757d;
+        padding: 40px;
+    }
+    
+    /* PDF控制按钮 */
+    .pdf-controls {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+    .pdf-control-btn {
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    /* 搜索框 */
+    .search-box {
+        margin-bottom: 15px;
+    }
+    
+    /* 隐藏History */
+    .history-panel {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Units横向布局 -->
+    <div class="units-container">
+        <div class="units-row" id="units-container">
+            <!-- Units will be loaded here -->
+        </div>
+    </div>
+    
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- Questions面板（左侧，缩小） -->
+        <div class="questions-panel">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0" id="questions-title">Questions</h5>
+                    <small id="question-count">0</small>
+                </div>
+                <div class="card-body p-2">
+                    <!-- 搜索框 -->
+                    <div class="search-box">
+                        <input type="text" class="form-control form-control-sm" id="search-input" placeholder="Search questions...">
+                    </div>
+                    
+                    <!-- 题目列表 -->
+                    <div class="question-list" id="question-list">
+                        <p class="text-muted text-center">Select a unit to view questions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PDF Viewer面板（右侧，扩大） -->
+        <div class="pdf-panel">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0" id="pdf-title">PDF Viewer</h5>
+                </div>
+                <div class="card-body">
+                    <!-- PDF控制按钮 -->
+                    <div class="pdf-controls">
+                        <button class="btn btn-primary pdf-control-btn" id="btn-qp">Question Paper</button>
+                        <button class="btn btn-success pdf-control-btn" id="btn-ms">Mark Scheme</button>
+                        <button class="btn btn-info pdf-control-btn" id="btn-syllabus">Syllabus</button>
+                        <button class="btn btn-warning pdf-control-btn" id="btn-ppt">PPT</button>
+                        <button class="btn btn-danger pdf-control-btn ms-auto" id="btn-kill">Kill</button>
+                        <button class="btn btn-secondary pdf-control-btn" id="btn-save">Save</button>
+                    </div>
+                    
+                    <!-- PDF查看器 -->
+                    <div class="pdf-viewer-container" id="pdf-viewer">
+                        <div class="pdf-placeholder">
+                            <i class="bi bi-file-pdf" style="font-size: 48px;"></i>
+                            <p class="mt-3">Select a question to view PDF</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden data -->
+<input type="hidden" id="current-subject" value="{{ current_subject.code }}">
+<input type="hidden" id="current-unit" value="">
+<input type="hidden" id="current-question-id" value="">
+<input type="hidden" id="current-question-code" value="">
+<input type="hidden" id="is-pastpaper-mode" value="false">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // PDF.js配置
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "{% static 'js/pdf.worker.min.js' %}";
+    
+    let currentSubject = '{{ current_subject.code }}';
+    let currentUnit = null;
+    let currentQuestionId = null;
+    let currentQuestionCode = null;
+    let currentPdfUrl = null;
+    let currentPdfType = 'qp';
+    let currentPage = 1;
+    let isPastPaperMode = false;
+    
+    // 加载单元列表
+    function loadUnits() {
+        fetch('/get_units/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `subject=${currentSubject}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('units-container');
+            container.innerHTML = '';
+            
+            // 添加单元按钮
+            data.forEach(unit => {
+                const btn = document.createElement('button');
+                btn.className = 'btn unit-btn';
+                btn.textContent = `Unit-${unit.unit_num}`;
+                btn.onclick = () => selectUnit(unit.unit_num);
+                container.appendChild(btn);
+            });
+            
+            // 添加Past Papers按钮
+            const ppBtn = document.createElement('button');
+            ppBtn.className = 'btn unit-btn pastpaper-btn';
+            ppBtn.textContent = 'Past Papers';
+            ppBtn.onclick = () => selectPastPapers();
+            container.appendChild(ppBtn);
+        })
+        .catch(error => console.error('Error loading units:', error));
+    }
+    
+    // 选择单元
+    function selectUnit(unitNum) {
+        currentUnit = unitNum;
+        isPastPaperMode = false;
+        document.getElementById('is-pastpaper-mode').value = 'false';
+        
+        // 更新按钮状态
+        document.querySelectorAll('.unit-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // 更新标题
+        document.getElementById('questions-title').textContent = 'Questions';
+        
+        // 加载题目列表
+        loadQuestions(unitNum);
+    }
+    
+    // 选择Past Papers
+    function selectPastPapers() {
+        isPastPaperMode = true;
+        document.getElementById('is-pastpaper-mode').value = 'true';
+        
+        // 更新按钮状态
+        document.querySelectorAll('.unit-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // 更新标题
+        document.getElementById('questions-title').textContent = 'Years';
+        
+        // 加载Past Papers
+        loadPastPapers();
+    }
+    
+    // 加载题目列表
+    function loadQuestions(unitNum) {
+        fetch('/get_list/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `unit=${unitNum}&subject=${currentSubject}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            const list = document.getElementById('question-list');
+            list.innerHTML = '';
+            
+            document.getElementById('question-count').textContent = data.length;
+            
+            data.forEach((q, index) => {
+                const item = document.createElement('div');
+                item.className = 'question-item';
+                if (q.checked) item.classList.add('completed');
+                if (q.save) item.classList.add('saved');
+                item.textContent = `${index + 1}. ${q.code}`;
+                item.onclick = () => selectQuestion(q.id, q.code, q.qpage, q.apage);
+                list.appendChild(item);
+            });
+        })
+        .catch(error => console.error('Error loading questions:', error));
+    }
+    
+    // 加载Past Papers
+    function loadPastPapers() {
+        fetch('/get_past_papers/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `subject=${currentSubject}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            const list = document.getElementById('question-list');
+            list.innerHTML = '';
+            
+            document.getElementById('question-count').textContent = data.length;
+            
+            // 按年份分组
+            const years = {};
+            data.forEach(pp => {
+                if (!years[pp.year]) years[pp.year] = [];
+                years[pp.year].push(pp);
+            });
+            
+            // 显示年份和试卷
+            Object.keys(years).sort((a, b) => b - a).forEach(year => {
+                const yearHeader = document.createElement('div');
+                yearHeader.className = 'fw-bold mt-2 mb-1';
+                yearHeader.textContent = `Year ${year}`;
+                list.appendChild(yearHeader);
+                
+                years[year].forEach(pp => {
+                    const item = document.createElement('div');
+                    item.className = 'question-item';
+                    item.textContent = pp.code;
+                    item.onclick = () => selectPastPaper(pp.code);
+                    list.appendChild(item);
+                });
+            });
+        })
+        .catch(error => console.error('Error loading past papers:', error));
+    }
+    
+    // 选择题目
+    function selectQuestion(id, code, qpage, apage) {
+        currentQuestionId = id;
+        currentQuestionCode = code;
+        currentPage = qpage || 1;
+        
+        // 更新题目状态
+        document.querySelectorAll('.question-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // 更新PDF标题
+        document.getElementById('pdf-title').textContent = code;
+        
+        // 加载PDF
+        loadPDF(code, 'qp', qpage);
+        
+        // 更新历史记录
+        updateHistory(code);
+    }
+    
+    // 选择Past Paper
+    function selectPastPaper(code) {
+        currentQuestionCode = code;
+        currentPage = 1;
+        
+        // 更新状态
+        document.querySelectorAll('.question-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // 更新PDF标题
+        document.getElementById('pdf-title').textContent = code;
+        
+        // 加载PDF
+        loadPDF(code, 'qp', 1);
+    }
+    
+    // 加载PDF
+    function loadPDF(code, type, page) {
+        currentPdfType = type;
+        const baseParts = code.split('-')[0];  // e.g., "9618_s23_11"
+        // 提取学科代码、年份和试卷号
+        const parts = baseParts.split('_');  // ["9618", "s23", "11"]
+        const subjectCode = parts[0];  // "9618"
+        const yearSession = parts[1];  // "s23"
+        const paper = parts[2];  // "11"
+        let pdfUrl;
+        
+        if (type === 'qp') {
+            pdfUrl = `/media/${subjectCode}_${yearSession}_qp_${paper}.pdf`;
+        } else if (type === 'ms') {
+            pdfUrl = `/media/${subjectCode}_${yearSession}_ms_${paper}.pdf`;
+        } else if (type === 'syllabus') {
+            pdfUrl = '/media/9618-2021-2023-syllabus.pdf';
+        } else if (type === 'ppt') {
+            if (currentUnit) {
+                pdfUrl = `https://cdn.computerscience.vip/pdf/ppt/Unit${currentUnit}.pdf`;
+            } else {
+                alert('Please select a unit first');
+                return;
+            }
+        }
+        
+        currentPdfUrl = pdfUrl;
+        
+        // 使用iframe加载PDF
+        const viewer = document.getElementById('pdf-viewer');
+        viewer.innerHTML = `<iframe src="${pdfUrl}#page=${page}" width="100%" height="100%" style="border: none;"></iframe>`;
+    }
+    
+    // PDF控制按钮
+    document.getElementById('btn-qp').onclick = () => {
+        if (currentQuestionCode) {
+            // 获取题目信息以获取qpage
+            fetch('/get_question_info/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `code=${currentQuestionCode}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadPDF(currentQuestionCode, 'qp', data.qpage || 1);
+            });
+        }
+    };
+    
+    document.getElementById('btn-ms').onclick = () => {
+        if (currentQuestionCode) {
+            fetch('/get_question_info/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `code=${currentQuestionCode}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadPDF(currentQuestionCode, 'ms', data.apage || 1);
+            });
+        }
+    };
+    
+    document.getElementById('btn-syllabus').onclick = () => {
+        loadPDF('', 'syllabus', 1);
+    };
+    
+    document.getElementById('btn-ppt').onclick = () => {
+        loadPDF('', 'ppt', 1);
+    };
+    
+    document.getElementById('btn-kill').onclick = () => {
+        if (currentQuestionId && !isPastPaperMode) {
+            updateUserTag(currentQuestionId, 1, 0);
+        }
+    };
+    
+    document.getElementById('btn-save').onclick = () => {
+        if (currentQuestionId && !isPastPaperMode) {
+            updateUserTag(currentQuestionId, 0, 1);
+        }
+    };
+    
+    // 更新用户标签
+    function updateUserTag(id, kill, save) {
+        fetch('/update_user_tags/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `id=${id}&kill=${kill}&save=${save}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 重新加载题目列表
+                if (currentUnit) {
+                    loadQuestions(currentUnit);
+                }
+            }
+        })
+        .catch(error => console.error('Error updating tag:', error));
+    }
+    
+    // 更新历史记录
+    function updateHistory(code) {
+        fetch('/update_history/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `code=${code}`
+        })
+        .catch(error => console.error('Error updating history:', error));
+    }
+    
+    // 搜索功能
+    document.getElementById('search-input').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        document.querySelectorAll('.question-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(searchTerm) ? 'block' : 'none';
+        });
+    });
+    
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        loadUnits();
+    });
+</script>
+{% endblock %}
+

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Details - Computer Science{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0">My Details</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <img src="{{ user.profile.avatar_url }}" alt="Avatar" class="img-fluid rounded-circle mb-3" style="max-width: 150px;">
+                        </div>
+                        <div class="col-md-8">
+                            <table class="table">
+                                <tr>
+                                    <th>Username:</th>
+                                    <td>{{ user.username }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Email:</th>
+                                    <td>{{ user.email }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Date Joined:</th>
+                                    <td>{{ user.date_joined|date:"Y-m-d H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Last Login:</th>
+                                    <td>{{ user.last_login|date:"Y-m-d H:i" }}</td>
+                                </tr>
+                            </table>
+                            
+                            <a href="{% url 'accounts:profile' %}" class="btn btn-primary">Edit Profile</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

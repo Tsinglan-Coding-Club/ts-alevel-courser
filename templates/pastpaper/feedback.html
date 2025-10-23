@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Feedback - Computer Science{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Feedback</h3>
+                </div>
+                <div class="card-body">
+                    <p class="lead">We'd love to hear from you!</p>
+                    <p>Your feedback helps us improve the platform. Please share your thoughts, suggestions, or report any issues you've encountered.</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Subject</label>
+                            <input type="text" class="form-control" id="subject" name="subject" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Message</label>
+                            <textarea class="form-control" id="message" name="message" rows="6" required></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
