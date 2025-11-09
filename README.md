@@ -47,8 +47,8 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 2. **Clone and setup**:
 ```bash
-git clone <repository-url>
-cd cs_learning_platform
+git clone https://github.com/Tsinglan-Coding-Club/ts-alevel-courser.git
+cd ts-alevel-courser
 ```
 
 3. **Install dependencies**:
