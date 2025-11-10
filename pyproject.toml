@@ -1,10 +1,11 @@
 [project]
-name = "cs-learning-platform"
+name = "ts-alevel-courser"
 version = "0.1.0"
-description = "Add your description here"
+description = "An online exam practicing platform inspired by A-Level CS review website, designed for Tsinglan students to practice with real exams and track learning progress. Created by Tsinglan Coding Club, coordinate by Mr. Weiyu Cao"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "django>=5.2.7",
     "pillow>=12.0.0",
+    "requests",
 ]
