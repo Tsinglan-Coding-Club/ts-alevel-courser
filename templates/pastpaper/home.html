@@ -221,6 +221,7 @@
     let currentUnit = null;
     let currentQuestionId = null;
     let currentQuestionCode = null;
+    let currentPastPaperCode = null;
     let currentPdfUrl = null;
     let currentPdfType = 'qp';
     let currentPage = 1;
@@ -265,6 +266,7 @@
         currentUnit = unitNum;
         isPastPaperMode = false;
         document.getElementById('is-pastpaper-mode').value = 'false';
+        currentPastPaperCode = null;
         
         // 更新按钮状态
         document.querySelectorAll('.unit-btn').forEach(btn => {
@@ -283,6 +285,8 @@
     function selectPastPapers() {
         isPastPaperMode = true;
         document.getElementById('is-pastpaper-mode').value = 'true';
+        currentQuestionId = null;
+        currentPastPaperCode = null;
         
         // 更新按钮状态
         document.querySelectorAll('.unit-btn').forEach(btn => {
@@ -361,6 +365,8 @@
                 years[year].forEach(pp => {
                     const item = document.createElement('div');
                     item.className = 'question-item';
+                    if (pp.checked) item.classList.add('completed');
+                    if (pp.save) item.classList.add('saved');
                     item.textContent = pp.code;
                     item.onclick = () => selectPastPaper(pp.code);
                     list.appendChild(item);
@@ -374,6 +380,7 @@
     function selectQuestion(id, code, qpage, apage) {
         currentQuestionId = id;
         currentQuestionCode = code;
+        currentPastPaperCode = null;
         currentPage = qpage || 1;
         
         // 更新题目状态
@@ -395,6 +402,8 @@
     // 选择Past Paper
     function selectPastPaper(code) {
         currentQuestionCode = code;
+        currentPastPaperCode = code;
+        currentQuestionId = null;
         currentPage = 1;
         
         // 更新状态
@@ -428,10 +437,13 @@
         } else if (type === 'syllabus') {
             pdfUrl = '/media/9618-2021-2023-syllabus.pdf';
         } else if (type === 'ppt') {
+            alert('此区域暂未开放哦');
+            return;
+            // 示例PPT链接构建逻辑
             if (currentUnit) {
                 pdfUrl = `https://cdn.computerscience.vip/pdf/ppt/Unit${currentUnit}.pdf`;
             } else {
-                alert('Please select a unit first');
+                alert('此区域暂未开放哦');
                 return;
             }
         }
@@ -446,6 +458,10 @@
     // PDF控制按钮
     document.getElementById('btn-qp').onclick = () => {
         if (currentQuestionCode) {
+            if (isPastPaperMode) {
+                loadPDF(currentQuestionCode, 'qp', 1);
+                return;
+            }
             // 获取题目信息以获取qpage
             fetch('/get_question_info/', {
                 method: 'POST',
@@ -464,6 +480,10 @@
     
     document.getElementById('btn-ms').onclick = () => {
         if (currentQuestionCode) {
+            if (isPastPaperMode) {
+                loadPDF(currentQuestionCode, 'ms', 1);
+                return;
+            }
             fetch('/get_question_info/', {
                 method: 'POST',
                 headers: {
@@ -488,32 +508,51 @@
     };
     
     document.getElementById('btn-kill').onclick = () => {
-        if (currentQuestionId && !isPastPaperMode) {
-            updateUserTag(currentQuestionId, 1, 0);
+        if (!isPastPaperMode && currentQuestionId) {
+            updateUserTag({ id: currentQuestionId, kill: 1, save: 0, itemType: 'question' });
+        } else if (isPastPaperMode && currentPastPaperCode) {
+            updateUserTag({ code: currentPastPaperCode, kill: 1, save: 0, itemType: 'past_paper' });
         }
     };
     
     document.getElementById('btn-save').onclick = () => {
-        if (currentQuestionId && !isPastPaperMode) {
-            updateUserTag(currentQuestionId, 0, 1);
+        if (!isPastPaperMode && currentQuestionId) {
+            updateUserTag({ id: currentQuestionId, kill: 0, save: 1, itemType: 'question' });
+        } else if (isPastPaperMode && currentPastPaperCode) {
+            updateUserTag({ code: currentPastPaperCode, kill: 0, save: 1, itemType: 'past_paper' });
         }
     };
     
     // 更新用户标签
-    function updateUserTag(id, kill, save) {
+    function updateUserTag({ id = null, code = null, kill = 0, save = 0, itemType = 'question' }) {
+        const params = new URLSearchParams();
+        params.append('kill', kill);
+        params.append('save', save);
+        params.append('item_type', itemType);
+        
+        if (itemType === 'past_paper' && code) {
+            params.append('code', code);
+        } else if (id) {
+            params.append('id', id);
+        } else {
+            return;
+        }
+        
         fetch('/update_user_tags/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            body: `id=${id}&kill=${kill}&save=${save}`
+            body: params.toString()
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 // 重新加载题目列表
-                if (currentUnit) {
+                if (itemType === 'past_paper') {
+                    loadPastPapers();
+                } else if (currentUnit) {
                     loadQuestions(currentUnit);
                 }
             }
