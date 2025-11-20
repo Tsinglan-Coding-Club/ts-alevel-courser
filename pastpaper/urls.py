@@ -9,6 +9,7 @@ urlpatterns = [
     path('home/<str:subject_code>/', views.home_view, name='home_subject'),
     path('feedback/', views.feedback_view, name='feedback'),
     path('mydetails/', views.mydetails_view, name='mydetails'),
+    path('theme-settings/', views.theme_settings_view, name='theme_settings'),
     
     # API endpoints
     path('get_units/', views.get_units, name='get_units'),

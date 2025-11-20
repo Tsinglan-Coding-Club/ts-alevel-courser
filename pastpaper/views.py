@@ -25,6 +25,23 @@ def home_view(request, subject_code='cs'):
 
 
 @login_required
+def theme_settings_view(request):
+    """主题设置页面"""
+    # 获取默认学科
+    try:
+        subject = Subject.objects.first()
+    except Subject.DoesNotExist:
+        subject = None
+
+    all_subjects = Subject.objects.all().order_by('id')
+
+    return render(request, 'pastpaper/theme_settings.html', {
+        'current_subject': subject,
+        'all_subjects': all_subjects
+    })
+
+
+@login_required
 def feedback_view(request):
     """反馈页面视图"""
     # 获取默认学科

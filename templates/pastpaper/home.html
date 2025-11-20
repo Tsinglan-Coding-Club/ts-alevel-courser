@@ -5,62 +5,105 @@
 
 {% block extra_css %}
 <style>
-    /* Units横向布局 */
-    .units-container {
+    /* Units in left panel */
+    .unit-item {
+        padding: 8px 10px;
+        margin-bottom: 6px;
         background: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-    .units-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    .unit-btn {
-        min-width: 70px;
-        padding: 8px 12px;
-        font-size: 14px;
-        font-weight: 600;
-        border: 2px solid #dee2e6;
+        border-radius: 4px;
+        cursor: pointer;
         transition: all 0.2s;
+        font-size: 14px;
+        font-weight: 500;
+        border: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
-    .unit-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    .unit-item:hover {
+        background: #e9ecef;
+        transform: translateX(3px);
     }
-    .unit-btn.active {
-        border-color: #0d6efd;
-        background: #0d6efd;
-        color: white;
+    .unit-item i {
+        font-size: 14px;
+        color: #6c757d;
     }
-    .pastpaper-btn {
-        background: #17a2b8;
+    .pastpaper-item {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
         color: white;
         border-color: #17a2b8;
     }
-    .pastpaper-btn.active {
-        background: #138496;
-        border-color: #138496;
+    .pastpaper-item:hover {
+        background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+        transform: translateX(3px);
+    }
+    .pastpaper-item i {
+        color: white;
+    }
+
+    /* Navigation bar (back + search + prev/next) */
+    .nav-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .back-btn {
+        padding: 6px 10px;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .nav-btn {
+        padding: 6px 10px;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+    .nav-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
     
     /* 主内容区域 */
     .main-content {
         display: flex;
-        gap: 15px;
+        gap: 20px;
+        height: calc(100% - 20px);
+        margin-bottom: 20px;
     }
     
     /* Questions面板 - 缩小宽度 */
     .questions-panel {
-        width: 250px;
+        width: 280px;
         flex-shrink: 0;
+        height: 100%;
     }
     .questions-panel .card {
-        height: max(calc(100vh - 280px), 800px);
-        min-height: 800px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .questions-panel .card-body {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
     .question-list {
-        max-height: max(calc(100vh - 380px), 700px);
+        flex: 1;
         overflow-y: auto;
         padding: 10px;
     }
@@ -97,14 +140,22 @@
     /* PDF Viewer - 扩大空间 */
     .pdf-panel {
         flex: 1;
+        height: 100%;
     }
     .pdf-panel .card {
-        height: max(calc(100vh - 280px), 800px);
-        min-height: 800px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .pdf-panel .card-body {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 15px;
     }
     .pdf-viewer-container {
-        height: calc(100% - 120px);
-        min-height: 700px;
+        flex: 1;
         overflow: auto;
         background: #525659;
         display: flex;
@@ -123,6 +174,7 @@
         gap: 8px;
         margin-bottom: 15px;
         flex-wrap: wrap;
+        flex-shrink: 0;
     }
     .pdf-control-btn {
         padding: 8px 16px;
@@ -132,43 +184,171 @@
     
     /* 搜索框 */
     .search-box {
-        margin-bottom: 15px;
+        flex: 1;
+        min-width: 0;
+    }
+    .search-box input {
+        width: 100%;
     }
     
     /* 隐藏History */
     .history-panel {
         display: none;
     }
+
+    /* 响应式布局 */
+    @media (max-width: 768px) {
+        .main-content {
+            flex-direction: column;
+            height: auto;
+        }
+        .questions-panel {
+            width: 100%;
+            height: 400px;
+            margin-bottom: 15px;
+        }
+        .pdf-panel {
+            height: 500px;
+        }
+    }
+
+    /* 问题计数样式 */
+    #question-count {
+        opacity: 0.85;
+        font-size: 0.85rem;
+    }
+
+    /* 浮动控制按钮 */
+    .float-control-btn {
+        position: fixed;
+        width: 40px;
+        height: 40px;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        z-index: 1000;
+    }
+    .float-control-btn:hover {
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        transform: scale(1.1);
+    }
+    .float-control-btn i {
+        transition: transform 0.3s ease;
+    }
+    .float-control-btn.rotated i {
+        transform: rotate(180deg);
+    }
+
+    /* 导航栏控制按钮位置 */
+    #navbar-toggle-btn {
+        top: 70px;
+        right: 20px;
+    }
+
+    /* 侧边栏控制按钮位置 */
+    #sidebar-toggle-btn {
+        bottom: 30px;
+        left: 20px;
+    }
+
+    /* 隐藏导航栏时的样式 */
+    .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1030;
+        transition: transform 0.3s ease;
+    }
+    body.navbar-hidden .navbar {
+        transform: translateY(-100%);
+    }
+    body:not(.navbar-hidden) .navbar {
+        transform: translateY(0);
+    }
+    body.navbar-hidden .page-container {
+        margin-top: 0 !important;
+        height: 100vh !important;
+    }
+    body:not(.navbar-hidden) .page-container {
+        margin-top: 56px;
+    }
+    body.navbar-hidden #navbar-toggle-btn {
+        top: 20px;
+    }
+
+    /* 隐藏侧边栏时的样式 */
+    .questions-panel {
+        transition: all 0.3s ease;
+    }
+    .questions-panel.hidden {
+        margin-left: -280px;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .pdf-panel {
+        transition: all 0.3s ease;
+    }
+    body.sidebar-hidden .questions-panel {
+        margin-left: -280px;
+        opacity: 0;
+        pointer-events: none;
+    }
+    body.sidebar-hidden #sidebar-toggle-btn {
+        left: 20px;
+    }
+    body:not(.sidebar-hidden) #sidebar-toggle-btn {
+        left: 320px;
+    }
+
+    /* Page container styling */
+    .page-container {
+        transition: margin-top 0.3s ease, height 0.3s ease;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <!-- Units横向布局 -->
-    <div class="units-container">
-        <div class="units-row" id="units-container">
-            <!-- Units will be loaded here -->
-        </div>
-    </div>
-    
-    <!-- 主内容区域 -->
-    <div class="main-content">
+<!-- 浮动控制按钮 -->
+<button class="float-control-btn" id="navbar-toggle-btn" title="Toggle Navigation Bar">
+    <i class="bi bi-chevron-up"></i>
+</button>
+<button class="float-control-btn" id="sidebar-toggle-btn" title="Toggle Sidebar">
+    <i class="bi bi-chevron-left"></i>
+</button>
+
+<div class="page-container" style="height: calc(100vh - 56px); overflow: hidden;">
+    <div class="container-fluid" style="padding: 20px; height: 100%;">
+        <!-- 主内容区域 -->
+        <div class="main-content">
         <!-- Questions面板（左侧，缩小） -->
         <div class="questions-panel">
             <div class="card">
                 <div class="card-header bg-success text-white">
-                    <h5 class="mb-0" id="questions-title">Questions</h5>
-                    <small id="question-count">0</small>
+                    <h5 class="mb-0" id="questions-title">Units</h5>
+                    <small id="question-count"></small>
                 </div>
                 <div class="card-body p-2">
-                    <!-- 搜索框 -->
-                    <div class="search-box">
-                        <input type="text" class="form-control form-control-sm" id="search-input" placeholder="Search questions...">
+                    <!-- 导航栏（初始隐藏） -->
+                    <div class="nav-bar" id="nav-bar" style="display: none;">
+                        <button class="back-btn" id="back-btn">&lt;&lt;</button>
+                        <div class="search-box" id="search-box">
+                            <input type="text" class="form-control form-control-sm" id="search-input" placeholder="Search...">
+                        </div>
+                        <button class="nav-btn" id="prev-btn">&lt;</button>
+                        <button class="nav-btn" id="next-btn">&gt;</button>
                     </div>
-                    
-                    <!-- 题目列表 -->
+
+                    <!-- 单元/题目列表 -->
                     <div class="question-list" id="question-list">
-                        <p class="text-muted text-center">Select a unit to view questions</p>
+                        <!-- Units will be loaded here -->
                     </div>
                 </div>
             </div>
@@ -201,6 +381,7 @@
                 </div>
             </div>
         </div>
+        </div>
     </div>
 </div>
 
@@ -225,6 +406,9 @@
     let currentPdfType = 'qp';
     let currentPage = 1;
     let isPastPaperMode = false;
+    let questionsList = []; // Store all questions for navigation
+    let displayedQuestionsList = []; // Store currently displayed/filtered questions
+    let currentQuestionIndex = -1; // Current position in displayedQuestionsList
     
     // 加载单元列表
     function loadUnits() {
@@ -238,26 +422,60 @@
         })
         .then(response => response.json())
         .then(data => {
-            const container = document.getElementById('units-container');
-            container.innerHTML = '';
-            
-            // 添加单元按钮
+            const list = document.getElementById('question-list');
+            list.innerHTML = '';
+
+            // 更新标题和计数
+            document.getElementById('questions-title').textContent = 'Units';
+            document.getElementById('question-count').textContent = `${data.length + 1} units`;
+
+            // 隐藏导航栏
+            document.getElementById('nav-bar').style.display = 'none';
+
+            // 添加单元项
             data.forEach(unit => {
-                const btn = document.createElement('button');
-                btn.className = 'btn unit-btn';
-                btn.textContent = `Unit-${unit.unit_num}`;
-                btn.onclick = () => selectUnit(unit.unit_num);
-                container.appendChild(btn);
+                const item = document.createElement('div');
+                item.className = 'unit-item';
+                item.innerHTML = `
+                    <span>Unit ${unit.unit_num}</span>
+                    <i class="bi bi-chevron-right"></i>
+                `;
+                item.onclick = () => selectUnit(unit.unit_num);
+                list.appendChild(item);
             });
-            
-            // 添加Past Papers按钮
-            const ppBtn = document.createElement('button');
-            ppBtn.className = 'btn unit-btn pastpaper-btn';
-            ppBtn.textContent = 'Past Papers';
-            ppBtn.onclick = () => selectPastPapers();
-            container.appendChild(ppBtn);
+
+            // 添加Past Papers项
+            const ppItem = document.createElement('div');
+            ppItem.className = 'unit-item pastpaper-item';
+            ppItem.innerHTML = `
+                <span>Past Papers</span>
+                <i class="bi bi-chevron-right"></i>
+            `;
+            ppItem.onclick = () => selectPastPapers();
+            list.appendChild(ppItem);
         })
         .catch(error => console.error('Error loading units:', error));
+    }
+
+    // 返回单元选择
+    function backToUnits() {
+        currentUnit = null;
+        isPastPaperMode = false;
+        currentQuestionId = null;
+        currentQuestionCode = null;
+
+        // 清空PDF查看器
+        const viewer = document.getElementById('pdf-viewer');
+        viewer.innerHTML = `
+            <div class="pdf-placeholder">
+                <i class="bi bi-file-pdf" style="font-size: 48px;"></i>
+                <p class="mt-3">Select a question to view PDF</p>
+            </div>
+        `;
+        document.getElementById('pdf-title').textContent = 'PDF Viewer';
+
+        // 重新加载单元列表
+        loadUnits();
     }
     
     // 选择单元
@@ -265,16 +483,13 @@
         currentUnit = unitNum;
         isPastPaperMode = false;
         document.getElementById('is-pastpaper-mode').value = 'false';
-        
-        // 更新按钮状态
-        document.querySelectorAll('.unit-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
-        
+
+        // 显示导航栏
+        document.getElementById('nav-bar').style.display = 'flex';
+
         // 更新标题
-        document.getElementById('questions-title').textContent = 'Questions';
-        
+        document.getElementById('questions-title').textContent = `Unit ${unitNum} Questions`;
+
         // 加载题目列表
         loadQuestions(unitNum);
     }
@@ -282,17 +497,15 @@
     // 选择Past Papers
     function selectPastPapers() {
         isPastPaperMode = true;
+        currentUnit = null;
         document.getElementById('is-pastpaper-mode').value = 'true';
-        
-        // 更新按钮状态
-        document.querySelectorAll('.unit-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
-        
+
+        // 显示导航栏
+        document.getElementById('nav-bar').style.display = 'flex';
+
         // 更新标题
-        document.getElementById('questions-title').textContent = 'Years';
-        
+        document.getElementById('questions-title').textContent = 'Past Papers';
+
         // 加载Past Papers
         loadPastPapers();
     }
@@ -311,16 +524,22 @@
         .then(data => {
             const list = document.getElementById('question-list');
             list.innerHTML = '';
-            
-            document.getElementById('question-count').textContent = data.length;
-            
+
+            // 保存题目列表用于导航
+            questionsList = data;
+            displayedQuestionsList = [...data]; // Initially all questions are displayed
+            currentQuestionIndex = -1;
+
+            document.getElementById('question-count').textContent = `${data.length} questions`;
+
             data.forEach((q, index) => {
                 const item = document.createElement('div');
                 item.className = 'question-item';
+                item.dataset.questionIndex = index; // Store original index
                 if (q.checked) item.classList.add('completed');
                 if (q.save) item.classList.add('saved');
                 item.textContent = `${index + 1}. ${q.code}`;
-                item.onclick = () => selectQuestion(q.id, q.code, q.qpage, q.apage);
+                item.onclick = () => selectQuestion(q.id, q.code, q.qpage, q.apage, index);
                 list.appendChild(item);
             });
         })
@@ -341,29 +560,39 @@
         .then(data => {
             const list = document.getElementById('question-list');
             list.innerHTML = '';
-            
-            document.getElementById('question-count').textContent = data.length;
-            
+
+            // 保存试卷列表用于导航
+            questionsList = data;
+            displayedQuestionsList = [...data]; // Initially all papers are displayed
+            currentQuestionIndex = -1;
+
+            document.getElementById('question-count').textContent = `${data.length} papers`;
+
             // 按年份分组
             const years = {};
             data.forEach(pp => {
                 if (!years[pp.year]) years[pp.year] = [];
                 years[pp.year].push(pp);
             });
-            
+
             // 显示年份和试卷
+            let paperIndex = 0;
             Object.keys(years).sort((a, b) => b - a).forEach(year => {
                 const yearHeader = document.createElement('div');
-                yearHeader.className = 'fw-bold mt-2 mb-1';
+                yearHeader.className = 'fw-bold mt-2 mb-1 px-2';
+                yearHeader.style.color = '#495057';
                 yearHeader.textContent = `Year ${year}`;
                 list.appendChild(yearHeader);
-                
+
                 years[year].forEach(pp => {
                     const item = document.createElement('div');
                     item.className = 'question-item';
+                    item.dataset.questionIndex = paperIndex; // Store original index
                     item.textContent = pp.code;
-                    item.onclick = () => selectPastPaper(pp.code);
+                    const currentIndex = paperIndex;
+                    item.onclick = () => selectPastPaper(pp.code, currentIndex);
                     list.appendChild(item);
+                    paperIndex++;
                 });
             });
         })
@@ -371,41 +600,142 @@
     }
     
     // 选择题目
-    function selectQuestion(id, code, qpage, apage) {
+    function selectQuestion(id, code, qpage, apage, index) {
         currentQuestionId = id;
         currentQuestionCode = code;
         currentPage = qpage || 1;
-        
+
+        // 在displayedQuestionsList中查找当前题目的索引
+        const displayedIndex = displayedQuestionsList.findIndex(q => q.id === id);
+        currentQuestionIndex = displayedIndex >= 0 ? displayedIndex : (index !== undefined ? index : currentQuestionIndex);
+
         // 更新题目状态
         document.querySelectorAll('.question-item').forEach(item => {
             item.classList.remove('active');
         });
         event.target.classList.add('active');
-        
+
+        // 更新导航按钮状态
+        updateNavigationButtons();
+
         // 更新PDF标题
         document.getElementById('pdf-title').textContent = code;
-        
+
         // 加载PDF
         loadPDF(code, 'qp', qpage);
-        
+
         // 更新历史记录
         updateHistory(code);
     }
+
+    // 更新导航按钮状态
+    function updateNavigationButtons() {
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+
+        // 禁用/启用上一题按钮
+        if (currentQuestionIndex <= 0 || displayedQuestionsList.length === 0) {
+            prevBtn.disabled = true;
+        } else {
+            prevBtn.disabled = false;
+        }
+
+        // 禁用/启用下一题按钮
+        if (currentQuestionIndex >= displayedQuestionsList.length - 1 || displayedQuestionsList.length === 0) {
+            nextBtn.disabled = true;
+        } else {
+            nextBtn.disabled = false;
+        }
+    }
+
+    // 上一题
+    function previousQuestion() {
+        if (currentQuestionIndex > 0 && displayedQuestionsList.length > 0) {
+            const prevItem = displayedQuestionsList[currentQuestionIndex - 1];
+
+            // Find the original index in questionsList
+            const originalIndex = questionsList.findIndex(q =>
+                isPastPaperMode ? q.code === prevItem.code : q.id === prevItem.id
+            );
+
+            if (isPastPaperMode) {
+                // Past Paper模式
+                selectPastPaper(prevItem.code, currentQuestionIndex - 1, originalIndex);
+            } else {
+                // 普通题目模式
+                selectQuestion(prevItem.id, prevItem.code, prevItem.qpage, prevItem.apage, currentQuestionIndex - 1);
+            }
+
+            // 更新UI中的active状态
+            updateActiveQuestionUI();
+        }
+    }
+
+    // 下一题
+    function nextQuestion() {
+        if (currentQuestionIndex < displayedQuestionsList.length - 1 && displayedQuestionsList.length > 0) {
+            const nextItem = displayedQuestionsList[currentQuestionIndex + 1];
+
+            // Find the original index in questionsList
+            const originalIndex = questionsList.findIndex(q =>
+                isPastPaperMode ? q.code === nextItem.code : q.id === nextItem.id
+            );
+
+            if (isPastPaperMode) {
+                // Past Paper模式
+                selectPastPaper(nextItem.code, currentQuestionIndex + 1, originalIndex);
+            } else {
+                // 普通题目模式
+                selectQuestion(nextItem.id, nextItem.code, nextItem.qpage, nextItem.apage, currentQuestionIndex + 1);
+            }
+
+            // 更新UI中的active状态
+            updateActiveQuestionUI();
+        }
+    }
+
+    // 更新UI中当前激活的题目
+    function updateActiveQuestionUI() {
+        const items = document.querySelectorAll('.question-item');
+        items.forEach(item => item.classList.remove('active'));
+
+        // 找到当前题目并激活
+        const currentItem = displayedQuestionsList[currentQuestionIndex];
+        if (currentItem) {
+            for (let i = 0; i < items.length; i++) {
+                if (!items[i].classList.contains('fw-bold')) {
+                    const itemText = items[i].textContent;
+                    const itemCode = isPastPaperMode ? currentItem.code : currentItem.code;
+                    if (itemText.includes(itemCode)) {
+                        items[i].classList.add('active');
+                        break;
+                    }
+                }
+            }
+        }
+    }
     
     // 选择Past Paper
-    function selectPastPaper(code) {
+    function selectPastPaper(code, index, originalIndex) {
         currentQuestionCode = code;
         currentPage = 1;
-        
+
+        // 在displayedQuestionsList中查找当前试卷的索引
+        const displayedIndex = displayedQuestionsList.findIndex(q => q.code === code);
+        currentQuestionIndex = displayedIndex >= 0 ? displayedIndex : (index !== undefined ? index : currentQuestionIndex);
+
         // 更新状态
         document.querySelectorAll('.question-item').forEach(item => {
             item.classList.remove('active');
         });
         event.target.classList.add('active');
-        
+
+        // 更新导航按钮状态
+        updateNavigationButtons();
+
         // 更新PDF标题
         document.getElementById('pdf-title').textContent = code;
-        
+
         // 加载PDF
         loadPDF(code, 'qp', 1);
     }
@@ -537,16 +867,102 @@
     // 搜索功能
     document.getElementById('search-input').addEventListener('input', function(e) {
         const searchTerm = e.target.value.toLowerCase();
-        document.querySelectorAll('.question-item').forEach(item => {
+
+        // 更新displayedQuestionsList
+        if (searchTerm === '') {
+            // 如果搜索框为空，显示所有题目
+            displayedQuestionsList = [...questionsList];
+        } else {
+            // 过滤题目列表
+            displayedQuestionsList = questionsList.filter(q => {
+                const code = q.code.toLowerCase();
+                return code.includes(searchTerm);
+            });
+        }
+
+        // 更新UI
+        const items = document.querySelectorAll('.question-item');
+        let displayedIndex = 0;
+        items.forEach(item => {
+            // 跳过年份标题
+            if (item.classList.contains('fw-bold')) {
+                return;
+            }
+
             const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            const shouldDisplay = text.includes(searchTerm);
+            item.style.display = shouldDisplay ? 'block' : 'none';
+
+            // 更新data-questionIndex以匹配displayedQuestionsList中的索引
+            if (shouldDisplay) {
+                item.dataset.displayIndex = displayedIndex;
+                displayedIndex++;
+            }
         });
+
+        // 如果当前选中的题目被过滤掉了，重置索引
+        if (currentQuestionIndex >= 0 && currentQuestionCode) {
+            const newIndex = displayedQuestionsList.findIndex(q =>
+                q.code === currentQuestionCode
+            );
+            if (newIndex >= 0) {
+                currentQuestionIndex = newIndex;
+            } else {
+                currentQuestionIndex = -1;
+            }
+        }
+
+        // 更新导航按钮状态
+        updateNavigationButtons();
     });
     
     // 页面加载时初始化
     document.addEventListener('DOMContentLoaded', function() {
         loadUnits();
+
+        // 绑定返回按钮事件
+        document.getElementById('back-btn').onclick = backToUnits;
+
+        // 绑定导航按钮事件
+        document.getElementById('prev-btn').onclick = previousQuestion;
+        document.getElementById('next-btn').onclick = nextQuestion;
+
+        // 初始化导航按钮状态
+        updateNavigationButtons();
+
+        // 绑定浮动按钮事件
+        initializeFloatingButtons();
     });
+
+    // 初始化浮动控制按钮
+    function initializeFloatingButtons() {
+        // 导航栏切换按钮
+        const navbarToggleBtn = document.getElementById('navbar-toggle-btn');
+        let navbarHidden = false;
+
+        navbarToggleBtn.addEventListener('click', function() {
+            navbarHidden = !navbarHidden;
+            document.body.classList.toggle('navbar-hidden', navbarHidden);
+            this.classList.toggle('rotated', navbarHidden);
+        });
+
+        // 侧边栏切换按钮
+        const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+        let sidebarHidden = false;
+
+        sidebarToggleBtn.addEventListener('click', function() {
+            sidebarHidden = !sidebarHidden;
+            document.body.classList.toggle('sidebar-hidden', sidebarHidden);
+
+            // 切换箭头方向
+            const icon = this.querySelector('i');
+            if (sidebarHidden) {
+                icon.className = 'bi bi-chevron-right';
+            } else {
+                icon.className = 'bi bi-chevron-left';
+            }
+        });
+    }
 </script>
 {% endblock %}
 
