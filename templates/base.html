@@ -41,6 +41,7 @@
             --bg-gradient-start: #ffffff;
             --bg-gradient-end: #f8f9fa;
             --text-color: #212529;
+            --button-text-color: #ffffff;
             --card-bg: #ffffff;
             --card-border: #dee2e6;
         }
@@ -59,6 +60,7 @@
         /* Float buttons */
         .float-control-btn {
             background: var(--float-button-color);
+            color: var(--button-text-color) !important;
             opacity: 0.9;
         }
         .float-control-btn:hover {
@@ -69,12 +71,14 @@
         /* Navigation buttons */
         .back-btn {
             background: var(--back-button-color) !important;
+            color: var(--button-text-color) !important;
         }
         .back-btn:hover {
             background: var(--back-button-hover) !important;
         }
         .nav-btn {
             background: var(--nav-button-color) !important;
+            color: var(--button-text-color) !important;
         }
         .nav-btn:hover {
             background: var(--nav-button-hover) !important;
@@ -83,9 +87,11 @@
         /* Card headers - solid colors only, no gradients */
         .card-header.bg-success {
             background: var(--selection-panel-header-color) !important;
+            color: var(--button-text-color) !important;
         }
         .card-header.bg-dark {
             background: var(--pdf-panel-header-color) !important;
+            color: var(--button-text-color) !important;
         }
 
         /* Cards */
@@ -98,26 +104,32 @@
         .pdf-control-btn.btn-primary {
             background: var(--pdf-button-primary) !important;
             border-color: var(--pdf-button-primary) !important;
+            color: var(--button-text-color) !important;
         }
         .pdf-control-btn.btn-success {
             background: var(--pdf-button-success) !important;
             border-color: var(--pdf-button-success) !important;
+            color: var(--button-text-color) !important;
         }
         .pdf-control-btn.btn-info {
             background: var(--pdf-button-info) !important;
             border-color: var(--pdf-button-info) !important;
+            color: var(--button-text-color) !important;
         }
         .pdf-control-btn.btn-warning {
             background: var(--pdf-button-warning) !important;
             border-color: var(--pdf-button-warning) !important;
+            color: var(--button-text-color) !important;
         }
         .pdf-control-btn.btn-danger {
             background: var(--pdf-button-danger) !important;
             border-color: var(--pdf-button-danger) !important;
+            color: var(--button-text-color) !important;
         }
         .pdf-control-btn.btn-secondary {
             background: var(--pdf-button-secondary) !important;
             border-color: var(--pdf-button-secondary) !important;
+            color: var(--button-text-color) !important;
         }
     </style>
 
@@ -243,6 +255,7 @@
             root.style.setProperty('--bg-gradient-start', colors.bgGradientStart);
             root.style.setProperty('--bg-gradient-end', colors.bgGradientEnd);
             root.style.setProperty('--text-color', colors.textColor);
+            root.style.setProperty('--button-text-color', colors.buttonTextColor);
             root.style.setProperty('--card-bg', colors.cardBg);
             root.style.setProperty('--card-border', colors.cardBorder);
         }

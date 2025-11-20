@@ -23,6 +23,7 @@
       "bgGradientStart": "#ffffff",
       "bgGradientEnd": "#f8f9fa",
       "textColor": "#212529",
+      "buttonTextColor": "#ffffff",
       "cardBg": "#ffffff",
       "cardBorder": "#dee2e6"
     },
@@ -58,6 +59,7 @@
       "bgGradientStart": "#f0f9ff",
       "bgGradientEnd": "#e0f2fe",
       "textColor": "#0f172a",
+      "buttonTextColor": "#ffffff",
       "cardBg": "#ffffff",
       "cardBorder": "#bae6fd"
     },

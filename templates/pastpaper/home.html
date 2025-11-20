@@ -5,6 +5,16 @@
 
 {% block extra_css %}
 <style>
+    /* Allow scrolling with resistance */
+    html, body {
+        overflow: auto;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overscroll-behavior: contain;
+        scroll-behavior: smooth;
+    }
+
     /* Units in left panel */
     .unit-item {
         padding: 8px 10px;
@@ -932,7 +942,44 @@
 
         // 绑定浮动按钮事件
         initializeFloatingButtons();
+
+        // Add scroll resistance
+        addScrollResistance();
     });
+
+    // Add high resistance to page scrolling
+    function addScrollResistance() {
+        const resistanceFactor = 0.15; // Lower value = more resistance (0.15 means 15% of normal scroll speed)
+        let scrollTimeout;
+
+        window.addEventListener('wheel', function(e) {
+            // Only apply resistance to main page scroll, not internal scrollable elements
+            if (e.target.closest('.question-list') || e.target.closest('.pdf-viewer-container')) {
+                return; // Let internal scrollable areas scroll normally
+            }
+
+            e.preventDefault();
+
+            // Apply resistance by reducing scroll delta
+            const scrollAmount = e.deltaY * resistanceFactor;
+
+            window.scrollBy({
+                top: scrollAmount,
+                behavior: 'auto'
+            });
+
+            // Clear existing timeout
+            clearTimeout(scrollTimeout);
+
+            // Add smooth settling effect
+            scrollTimeout = setTimeout(() => {
+                window.scrollBy({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }, 50);
+        }, { passive: false });
+    }
 
     // 初始化浮动控制按钮
     function initializeFloatingButtons() {
