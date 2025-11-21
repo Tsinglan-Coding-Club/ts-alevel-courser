@@ -3,7 +3,16 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Q
-from .models import Subject, Unit, Question, PastPaper, UserTag, HistoryRecord, Setting
+from .models import (
+    Subject,
+    Unit,
+    Question,
+    PastPaper,
+    PastPaperTag,
+    UserTag,
+    HistoryRecord,
+    Setting,
+)
 
 
 @login_required
@@ -143,15 +152,25 @@ def get_past_papers(request):
     
     try:
         subject = Subject.objects.get(code=subject_code)
-        past_papers = PastPaper.objects.filter(subject=subject).order_by('-year', 'session', 'paper_num')
+        past_papers = list(PastPaper.objects.filter(subject=subject).order_by('-year', 'session', 'paper_num'))
+        paper_ids = [pp.id for pp in past_papers]
+        tags = {}
+        if paper_ids:
+            tags = {
+                tag.past_paper_id: tag
+                for tag in PastPaperTag.objects.filter(user=request.user, past_paper_id__in=paper_ids)
+            }
         
         result = []
         for pp in past_papers:
+            tag = tags.get(pp.id)
             result.append({
                 'code': pp.code,
                 'year': pp.year,
                 'session': pp.session,
-                'paper_num': pp.paper_num
+                'paper_num': pp.paper_num,
+                'checked': tag.kill if tag else False,
+                'save': tag.saved if tag else False,
             })
         
         return JsonResponse(result, safe=False)
@@ -200,36 +219,55 @@ def get_history(request):
 @login_required
 @require_POST
 def update_user_tags(request):
-    """更新用户题目标签"""
+    """更新用户题目或Past Paper标签"""
+    item_type = request.POST.get('item_type', 'question')
     question_id = request.POST.get('id')
+    paper_code = request.POST.get('code')
     kill_value = request.POST.get('kill', '0')
     save_value = request.POST.get('save', '0')
-    
+
+    def apply_tag_state(tag_obj):
+        if kill_value == '1':
+            tag_obj.kill = True
+            tag_obj.saved = False
+        elif save_value == '1':
+            tag_obj.saved = True
+            tag_obj.kill = False
+        tag_obj.save()
+        return {'kill': tag_obj.kill, 'saved': tag_obj.saved}
+
+    if item_type == 'past_paper':
+        if not paper_code:
+            return JsonResponse({'success': False, 'error': 'Past paper code is required'}, status=400)
+        try:
+            past_paper = PastPaper.objects.get(code=paper_code)
+            tag, _ = PastPaperTag.objects.get_or_create(
+                user=request.user,
+                past_paper=past_paper
+            )
+            state = apply_tag_state(tag)
+            return JsonResponse({'success': True, 'item_type': 'past_paper', 'state': state})
+        except PastPaper.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Past paper not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
     if not question_id:
         return JsonResponse({'success': False, 'error': 'Question ID is required'}, status=400)
-    
+
     try:
         question = Question.objects.get(id=question_id)
-        tag, created = UserTag.objects.get_or_create(
+        tag, _ = UserTag.objects.get_or_create(
             user=request.user,
             question=question
         )
-        
-        # 根据传入的值更新标签
-        if kill_value == '1':
-            tag.kill = True
-            tag.saved = False
-        elif save_value == '1':
-            tag.saved = True
-            tag.kill = False
-        
-        tag.save()
-        
-        return JsonResponse({'success': True})
+        state = apply_tag_state(tag)
+        return JsonResponse({'success': True, 'item_type': 'question', 'state': state})
     except Question.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Question not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 
 @login_required

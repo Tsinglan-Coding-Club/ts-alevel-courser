@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import Subject, Unit, Question, PastPaper, UserTag, HistoryRecord, Setting
+from .models import (
+    Subject,
+    Unit,
+    Question,
+    PastPaper,
+    PastPaperTag,
+    UserTag,
+    HistoryRecord,
+    Setting,
+)
 
 
 @admin.register(Subject)
@@ -68,6 +77,13 @@ class UserTagAdmin(admin.ModelAdmin):
     list_display = ['user', 'question', 'kill', 'saved', 'created_at']
     list_filter = ['kill', 'saved', 'created_at']
     search_fields = ['user__username', 'question__code']
+
+
+@admin.register(PastPaperTag)
+class PastPaperTagAdmin(admin.ModelAdmin):
+    list_display = ['user', 'past_paper', 'kill', 'saved', 'created_at']
+    list_filter = ['kill', 'saved', 'created_at']
+    search_fields = ['user__username', 'past_paper__code']
 
 
 @admin.register(HistoryRecord)

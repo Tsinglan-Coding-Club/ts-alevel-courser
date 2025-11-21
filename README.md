@@ -9,7 +9,7 @@ A comprehensive Django-based learning platform for Cambridge International A-Lev
 - **Unit-based Organization**: 20 units covering all CS topics per subject
 - **Question Browser**: Browse past paper questions by unit and year
 - **Integrated PDF Viewer**: View questions, mark schemes, and syllabus with page navigation
-- **Progress Tracking**: Mark questions as "Kill" (completed) or "Save" (bookmarked)
+- **Progress Tracking**: Mark questions and past papers as "Kill" (completed) or "Save" (bookmarked)
 - **History Tracking**: Track recently viewed questions
 - **Search Functionality**: Search questions by code
 - **Responsive Design**: Optimized for all devices including landscape mode
@@ -83,36 +83,35 @@ uv run python manage.py runserver
 ## 📁 Project Structure
 
 ```
-cs_learning_platform/
-├── accounts/              # User authentication app
-│   ├── models.py         # UserProfile model
-│   ├── views.py          # Login, register, profile views
-│   ├── forms.py          # Authentication forms
-│   └── urls.py           # Account URLs
-├── pastpaper/            # Core functionality app
-│   ├── models.py         # Subject, Unit, Question, PastPaper, UserTag models
-│   ├── views.py          # Home, API endpoints
-│   ├── admin.py          # Admin configurations
-│   └── urls.py           # Pastpaper URLs
-├── config/               # Project configuration
-│   ├── settings.py       # Django settings
-│   ├── urls.py           # Root URL configuration
-│   └── wsgi.py           # WSGI configuration
-├── templates/            # HTML templates
-│   ├── base.html         # Base template with dynamic navigation
-│   ├── accounts/         # Account templates
-│   └── pastpaper/        # Pastpaper templates
-├── static/               # Static files (local)
-│   ├── css/              # Bootstrap 5.3.0
-│   ├── js/               # PDF.js 3.11.174
-│   └── images/           # Images
-├── media/                # PDF files (21 files for 9618)
-├── db.sqlite3            # SQLite database
-├── manage.py             # Django management script
-├── populate_data_v2.py   # Sample data script
-├── pyproject.toml        # Project configuration
-├── uv.lock               # Locked dependencies
-└── README.md             # This file
+ts-alevel-courser/
+|-- accounts/              # User authentication app
+|   |-- models.py          # UserProfile model
+|   |-- views.py           # Login, register, profile views
+|   |-- forms.py           # Authentication forms
+|   \-- urls.py            # Account URLs
+|-- pastpaper/             # Core functionality app
+|   |-- models.py          # Subject, Unit, Question, PastPaper, UserTag, PastPaperTag
+|   |-- views.py           # Home view & AJAX/API endpoints
+|   |-- admin.py           # Admin configurations
+|   \-- urls.py            # Past paper URLs
+|-- config/                # Project configuration
+|   |-- settings.py        # Django settings
+|   |-- urls.py            # Root URL configuration
+|   \-- wsgi.py            # WSGI configuration
+|-- templates/             # HTML templates
+|   |-- base.html          # Base template with dynamic navigation
+|   |-- accounts/          # Account templates
+|   \-- pastpaper/         # Past paper templates
+|-- static/                # Static files (local)
+|   |-- css/               # Bootstrap 5.3.0
+|   |-- js/                # PDF.js 3.11.174
+|   \-- images/            # Images
+|-- media/                 # PDF files + avatar
+|-- manage.py              # Django management script
+|-- populate_data_v2.py    # Sample data script
+|-- pyproject.toml         # Project configuration
+|-- uv.lock                # Locked dependencies
+\-- README.md              # This file
 ```
 
 ## 🗄️ Database Schema
@@ -122,7 +121,7 @@ cs_learning_platform/
 **Subject**
 - `code`: Subject code (e.g., "cs", "ig")
 - `name`: Full subject name
-- `exam_board`: Exam board (default: "CIE")
+- `exam_code`: Exam code / syllabus identifier (e.g., 9618)
 
 **Unit**
 - `subject`: Foreign key to Subject
@@ -144,6 +143,12 @@ cs_learning_platform/
 - `session`: Session (e.g., "s" for summer)
 - `paper_num`: Paper number (e.g., 11)
 
+**PastPaperTag**
+- `user`: Foreign key to User
+- `past_paper`: Foreign key to PastPaper
+- `kill`: Boolean (completed)
+- `saved`: Boolean (bookmarked)
+
 **UserTag**
 - `user`: Foreign key to User
 - `question`: Foreign key to Question
@@ -152,9 +157,8 @@ cs_learning_platform/
 
 **HistoryRecord**
 - `user`: Foreign key to User
-- `code`: Question code
-- `unit`: Unit number
-- `created_at`: Timestamp
+- `question`: Foreign key to Question
+- `visited_at`: Timestamp
 
 ## 🔌 API Endpoints
 
@@ -162,7 +166,8 @@ cs_learning_platform/
 
 - `/get_units/`: Get list of units for current subject
 - `/get_list/`: Get questions for a unit
-- `/update_user_tags/`: Update question tags (kill/save)
+- `/get_past_papers/`: Fetch past papers plus each paper's Kill/Save state for the current user
+- `/update_user_tags/`: Update tags for questions or past papers (Kill/Save)
 - `/get_history/`: Get user's browsing history
 - `/update_history/`: Add question to history
 - `/get_question_info/`: Get question details
@@ -173,6 +178,7 @@ cs_learning_platform/
 - **Green background**: Completed (Kill)
 - **Yellow background**: Bookmarked (Save)
 - **Blue background**: Currently selected
+- Works the same for questions and full past papers
 
 ### PDF Controls
 - **Question Paper**: View question PDF with page navigation
@@ -231,12 +237,12 @@ See `DEPLOYMENT.md` for detailed deployment guide.
 ## 🧪 Testing
 
 All core features have been tested:
-- ✅ User authentication and authorization
-- ✅ Subject switching and navigation
-- ✅ PDF loading and page navigation
-- ✅ Kill/Save functionality
-- ✅ Admin backend (all models)
-- ✅ Responsive layout (including landscape devices)
+- User authentication and authorization
+- Subject switching and navigation
+- PDF loading and page navigation
+- Kill/Save functionality for questions and past papers
+- Admin backend (all models)
+- Responsive layout (including landscape devices)
 
 ## 🔧 Development
 
