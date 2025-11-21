@@ -1,0 +1,82 @@
+{
+  "default": {
+    "name": "Default Theme",
+    "badge": "Default",
+    "badgeColor": "#0d6efd",
+    "colors": {
+      "navbarGradientStart": "#212529",
+      "navbarGradientEnd": "#343a40",
+      "floatButtonColor": "#0d6efd",
+      "floatButtonHover": "#0b5ed7",
+      "navButtonColor": "#0d6efd",
+      "navButtonHover": "#0b5ed7",
+      "backButtonColor": "#6c757d",
+      "backButtonHover": "#5a6268",
+      "selectionPanelHeaderColor": "#0d6efd",
+      "pdfPanelHeaderColor": "#343a40",
+      "pdfButtonPrimary": "#0d6efd",
+      "pdfButtonSuccess": "#28a745",
+      "pdfButtonInfo": "#17a2b8",
+      "pdfButtonWarning": "#ffc107",
+      "pdfButtonDanger": "#dc3545",
+      "pdfButtonSecondary": "#6c757d",
+      "questionCompletedBg": "#d4edda",
+      "questionCompletedBorder": "#28a745",
+      "questionSavedBg": "#fff3cd",
+      "questionSavedBorder": "#ffc107",
+      "bgGradientStart": "#ffffff",
+      "bgGradientEnd": "#f8f9fa",
+      "textColor": "#212529",
+      "buttonTextColor": "#ffffff",
+      "cardBg": "#ffffff",
+      "cardBorder": "#dee2e6"
+    },
+    "palette": [
+      { "name": "Float Btn", "color": "#0d6efd" },
+      { "name": "Selection", "color": "#28a745" },
+      { "name": "PDF Panel", "color": "#343a40" },
+      { "name": "Warning", "color": "#ffc107" },
+      { "name": "Danger", "color": "#dc3545" }
+    ]
+  },
+  "ocean": {
+    "name": "Ocean Theme",
+    "badge": "Modern",
+    "badgeColor": "#00d9ff",
+    "colors": {
+      "navbarGradientStart": "#03045e",
+      "navbarGradientEnd": "#023e8a",
+      "floatButtonColor": "#023e8a",
+      "floatButtonHover": "#00b8d9",
+      "navButtonColor": "#00d9ff",
+      "navButtonHover": "#00b8d9",
+      "backButtonColor": "#3b82f6",
+      "backButtonHover": "#2563eb",
+      "selectionPanelHeaderColor": "#023e8a",
+      "pdfPanelHeaderColor": "#0f172a",
+      "pdfButtonPrimary": "#00d9ff",
+      "pdfButtonSuccess": "#10b981",
+      "pdfButtonInfo": "#06b6d4",
+      "pdfButtonWarning": "#f59e0b",
+      "pdfButtonDanger": "#ef4444",
+      "pdfButtonSecondary": "#64748b",
+      "questionCompletedBg": "#d1fae5",
+      "questionCompletedBorder": "#10b981",
+      "questionSavedBg": "#fef3c7",
+      "questionSavedBorder": "#f59e0b",
+      "bgGradientStart": "#edede9",
+      "bgGradientEnd": "#edede9",
+      "textColor": "#0f172a",
+      "buttonTextColor": "#ffffff",
+      "cardBg": "#ffffff",
+      "cardBorder": "#bae6fd"
+    },
+    "palette": [
+      { "name": "Cyan", "color": "#00d9ff" },
+      { "name": "Selection", "color": "#0891b2" },
+      { "name": "PDF Panel", "color": "#0f172a" },
+      { "name": "Blue", "color": "#3b82f6" },
+      { "name": "Emerald", "color": "#10b981" }
+    ]
+  }
+}

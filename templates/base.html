@@ -9,13 +9,134 @@
     
     <!-- Bootstrap 5 CSS -->
     <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
-    
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
     <!-- PDF.js -->
     <script src="{% static 'js/pdf.min.js' %}"></script>
-    
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    
+
+    <style id="theme-styles">
+        /* Theme variables will be injected here dynamically */
+        :root {
+            --navbar-gradient-start: #212529;
+            --navbar-gradient-end: #343a40;
+            --float-button-color: #0d6efd;
+            --float-button-hover: #0b5ed7;
+            --nav-button-color: #0d6efd;
+            --nav-button-hover: #0b5ed7;
+            --back-button-color: #6c757d;
+            --back-button-hover: #5a6268;
+            --selection-panel-header-color: #28a745;
+            --pdf-panel-header-color: #343a40;
+            --pdf-button-primary: #0d6efd;
+            --pdf-button-success: #28a745;
+            --pdf-button-info: #17a2b8;
+            --pdf-button-warning: #ffc107;
+            --pdf-button-danger: #dc3545;
+            --pdf-button-secondary: #6c757d;
+            --question-completed-bg: #d4edda;
+            --question-completed-border: #28a745;
+            --question-saved-bg: #fff3cd;
+            --question-saved-border: #ffc107;
+            --bg-gradient-start: #ffffff;
+            --bg-gradient-end: #f8f9fa;
+            --text-color: #212529;
+            --button-text-color: #ffffff;
+            --card-bg: #ffffff;
+            --card-border: #dee2e6;
+        }
+
+        /* Apply theme colors */
+        .navbar.bg-dark {
+            background: linear-gradient(135deg, var(--navbar-gradient-start) 0%, var(--navbar-gradient-end) 100%) !important;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        /* Float buttons */
+        .float-control-btn {
+            background: var(--float-button-color);
+            color: var(--button-text-color) !important;
+            opacity: 0.9;
+        }
+        .float-control-btn:hover {
+            background: var(--float-button-hover);
+            opacity: 1;
+        }
+
+        /* Navigation buttons */
+        .back-btn {
+            background: var(--back-button-color) !important;
+            color: var(--button-text-color) !important;
+        }
+        .back-btn:hover {
+            background: var(--back-button-hover) !important;
+        }
+        .nav-btn {
+            background: var(--nav-button-color) !important;
+            color: var(--button-text-color) !important;
+        }
+        .nav-btn:hover {
+            background: var(--nav-button-hover) !important;
+        }
+
+        /* Card headers - solid colors only, no gradients */
+        .card-header.bg-success {
+            background: var(--selection-panel-header-color) !important;
+            color: var(--button-text-color) !important;
+        }
+        .card-header.bg-dark {
+            background: var(--pdf-panel-header-color) !important;
+            color: var(--button-text-color) !important;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-color: var(--card-border);
+        }
+
+        /* PDF Control Buttons */
+        .pdf-control-btn.btn-primary {
+            background: var(--pdf-button-primary) !important;
+            border-color: var(--pdf-button-primary) !important;
+            color: var(--button-text-color) !important;
+        }
+        .pdf-control-btn.btn-success {
+            background: var(--pdf-button-success) !important;
+            border-color: var(--pdf-button-success) !important;
+            color: var(--button-text-color) !important;
+        }
+        .pdf-control-btn.btn-info {
+            background: var(--pdf-button-info) !important;
+            border-color: var(--pdf-button-info) !important;
+            color: var(--button-text-color) !important;
+        }
+        .pdf-control-btn.btn-warning {
+            background: var(--pdf-button-warning) !important;
+            border-color: var(--pdf-button-warning) !important;
+            color: var(--button-text-color) !important;
+        }
+        .pdf-control-btn.btn-danger {
+            background: var(--pdf-button-danger) !important;
+            border-color: var(--pdf-button-danger) !important;
+            color: var(--button-text-color) !important;
+        }
+        .pdf-control-btn.btn-secondary {
+            background: var(--pdf-button-secondary) !important;
+            border-color: var(--pdf-button-secondary) !important;
+            color: var(--button-text-color) !important;
+        }
+    </style>
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -57,6 +178,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{% url 'pastpaper:mydetails' %}">My Details</a></li>
+                            <li><a class="dropdown-item" href="{% url 'pastpaper:theme_settings' %}">Theme Settings</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">Logout</a></li>
                         </ul>
@@ -85,16 +207,68 @@
     </main>
 
     <!-- Footer -->
-    <footer class="text-center py-3 mt-5 bg-light">
+    <!--<footer class="text-center py-3 mt-5 bg-light">
         <p class="mb-0">Developed by Tsinglan School Coding Club</p>
-    </footer>
+    </footer>-->
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     
     <!-- Custom JS -->
     <script src="{% static 'js/main.js' %}"></script>
-    
+
+    <!-- Theme System -->
+    <script>
+        // Apply theme on page load
+        (async function() {
+            const savedTheme = localStorage.getItem('colorTheme') || 'default';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            document.body.setAttribute('data-theme', savedTheme);
+
+            // Load theme config and apply CSS variables
+            try {
+                const response = await fetch('{% static "js/themes.json" %}');
+                const themes = await response.json();
+
+                if (themes[savedTheme]) {
+                    applyThemeVariables(themes[savedTheme].colors);
+                }
+            } catch (error) {
+                console.error('Error loading theme:', error);
+            }
+        })();
+
+        function applyThemeVariables(colors) {
+            const root = document.documentElement;
+            root.style.setProperty('--navbar-gradient-start', colors.navbarGradientStart);
+            root.style.setProperty('--navbar-gradient-end', colors.navbarGradientEnd);
+            root.style.setProperty('--float-button-color', colors.floatButtonColor);
+            root.style.setProperty('--float-button-hover', colors.floatButtonHover);
+            root.style.setProperty('--nav-button-color', colors.navButtonColor);
+            root.style.setProperty('--nav-button-hover', colors.navButtonHover);
+            root.style.setProperty('--back-button-color', colors.backButtonColor);
+            root.style.setProperty('--back-button-hover', colors.backButtonHover);
+            root.style.setProperty('--selection-panel-header-color', colors.selectionPanelHeaderColor);
+            root.style.setProperty('--pdf-panel-header-color', colors.pdfPanelHeaderColor);
+            root.style.setProperty('--pdf-button-primary', colors.pdfButtonPrimary);
+            root.style.setProperty('--pdf-button-success', colors.pdfButtonSuccess);
+            root.style.setProperty('--pdf-button-info', colors.pdfButtonInfo);
+            root.style.setProperty('--pdf-button-warning', colors.pdfButtonWarning);
+            root.style.setProperty('--pdf-button-danger', colors.pdfButtonDanger);
+            root.style.setProperty('--pdf-button-secondary', colors.pdfButtonSecondary);
+            root.style.setProperty('--question-completed-bg', colors.questionCompletedBg);
+            root.style.setProperty('--question-completed-border', colors.questionCompletedBorder);
+            root.style.setProperty('--question-saved-bg', colors.questionSavedBg);
+            root.style.setProperty('--question-saved-border', colors.questionSavedBorder);
+            root.style.setProperty('--bg-gradient-start', colors.bgGradientStart);
+            root.style.setProperty('--bg-gradient-end', colors.bgGradientEnd);
+            root.style.setProperty('--text-color', colors.textColor);
+            root.style.setProperty('--button-text-color', colors.buttonTextColor);
+            root.style.setProperty('--card-bg', colors.cardBg);
+            root.style.setProperty('--card-border', colors.cardBorder);
+        }
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

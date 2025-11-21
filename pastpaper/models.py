@@ -77,6 +77,34 @@ class PastPaper(models.Model):
         return f"{self.code}ms_{self.paper_num}.pdf"
 
 
+class PastPaperTag(models.Model):
+    """用户对历年试卷的标签"""
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='pastpaper_tags',
+        verbose_name="用户"
+    )
+    past_paper = models.ForeignKey(
+        PastPaper,
+        on_delete=models.CASCADE,
+        related_name='user_tags',
+        verbose_name="历年试卷"
+    )
+    kill = models.BooleanField(default=False, verbose_name="已完成")
+    saved = models.BooleanField(default=False, verbose_name="已保存", db_column='pp_save')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['user', 'past_paper']
+        verbose_name = "历年试卷标签"
+        verbose_name_plural = "历年试卷标签"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.past_paper.code}"
+
+
 class Question(models.Model):
     """题目模型"""
     code = models.CharField(max_length=50, unique=True, verbose_name="题目代码")
