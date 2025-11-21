@@ -495,13 +495,6 @@
         isPastPaperMode = false;
         document.getElementById('is-pastpaper-mode').value = 'false';
         currentPastPaperCode = null;
-        
-        // 更新按钮状态
-        document.querySelectorAll('.unit-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
-        
 
         // 显示导航栏
         document.getElementById('nav-bar').style.display = 'flex';
@@ -520,13 +513,6 @@
         document.getElementById('is-pastpaper-mode').value = 'true';
         currentQuestionId = null;
         currentPastPaperCode = null;
-        
-        // 更新按钮状态
-        document.querySelectorAll('.unit-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
-        
 
         // 显示导航栏
         document.getElementById('nav-bar').style.display = 'flex';
