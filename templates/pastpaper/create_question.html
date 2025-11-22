@@ -1,0 +1,710 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Question - Teacher{% endblock %}
+
+{% block extra_css %}
+<style>
+    html, body { height: 100%; }
+    .page-shell {
+        height: calc(100vh - 56px);
+        padding: 18px;
+    }
+    .layout-grid {
+        display: grid;
+        grid-template-columns: 300px 1fr 340px;
+        gap: 16px;
+        height: 100%;
+    }
+    .selectors-card, .viewer-card, .editor-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .viewer-card .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 16px;
+        gap: 12px;
+    }
+    .selector-group label {
+        font-weight: 600;
+        font-size: 13px;
+    }
+    .list-scroll {
+        flex: 1;
+        overflow-y: auto;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 10px;
+        background: #fafafa;
+    }
+    .question-chip {
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .question-chip:hover { border-color: #0d6efd; }
+    .question-chip.active { background: #0d6efd; color: white; border-color: #0a58ca; }
+    .pdf-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+    .pdf-viewer {
+        flex: 1;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #525659;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+    }
+    .pdf-viewer iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: #525659;
+    }
+    .editor-card .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .save-toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: rgba(255,255,255,0.95);
+        color: #000;
+        padding: 10px 14px;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.35s ease;
+        pointer-events: none;
+        z-index: 1200;
+    }
+    .save-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    @media (max-width: 1200px) {
+        .layout-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto auto auto;
+            height: auto;
+        }
+        .selectors-card, .viewer-card, .editor-card {
+            height: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-shell container-fluid">
+    <div class="layout-grid">
+        <!-- 左侧选择栏 -->
+        <div class="card selectors-card">
+            <div class="card-header bg-success text-white">
+                <strong>Create Question</strong>
+            </div>
+            <div class="card-body d-flex flex-column" style="gap: 12px;">
+                <div class="selector-group">
+                    <label class="form-label mb-1">学科代码</label>
+                    <select id="subject-select" class="form-select form-select-sm">
+                        {% for subject in all_subjects %}
+                        <option value="{{ subject.code }}" data-exam="{{ subject.exam_code }}" {% if current_subject and subject.id == current_subject.id %}selected{% endif %}>
+                            {{ subject.exam_code }} - {{ subject.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="selector-group">
+                    <label class="form-label mb-1">考试季/年份</label>
+                    <select id="session-select" class="form-select form-select-sm"></select>
+                </div>
+                <div class="selector-group">
+                    <label class="form-label mb-1">试卷编号</label>
+                    <select id="paper-select" class="form-select form-select-sm"></select>
+                </div>
+                <div class="selector-group d-flex flex-column" style="flex: 1;">
+                    <label class="form-label mb-1 d-flex justify-content-between align-items-center">
+                        <span>题目编号</span>
+                        <button class="btn btn-outline-primary btn-sm" id="btn-new-question">新建题目</button>
+                    </label>
+                    <div class="list-scroll" id="question-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中间 PDF Viewer -->
+        <div class="card viewer-card">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <span id="pdf-title">PDF Viewer</span>
+                <span class="small text-muted" id="pdf-meta"></span>
+            </div>
+            <div class="card-body">
+                <div class="pdf-toolbar">
+                    <div class="btn-group">
+                        <button class="btn btn-primary btn-sm" id="btn-view-qp">Question Paper</button>
+                        <button class="btn btn-success btn-sm" id="btn-view-ms">Mark Scheme</button>
+                        <button class="btn btn-info btn-sm" id="btn-view-syllabus">Syllabus</button>
+                    </div>
+                    <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+                        <label class="mb-0 small text-muted">Page</label>
+                        <div class="input-group input-group-sm" style="width: 140px;">
+                            <button class="btn btn-outline-secondary" type="button" id="btn-page-prev">&minus;</button>
+                            <input type="number" min="1" class="form-control" id="page-input" value="1">
+                            <button class="btn btn-outline-secondary" type="button" id="btn-page-next">+</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="pdf-viewer" id="pdf-viewer">
+                    <div class="d-flex h-100 align-items-center justify-content-center text-white-50">
+                        <div class="text-center">
+                            <i class="bi bi-file-earmark-pdf" style="font-size: 42px;"></i>
+                            <div class="mt-2">选择题目后预览 PDF</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧编辑栏 -->
+        <div class="card editor-card">
+            <div class="card-header bg-secondary text-white">
+                <strong>题目编辑</strong>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <label class="form-label">题目代码</label>
+                    <input type="text" class="form-control form-control-sm" id="input-code" placeholder="9618_s23_11-Q1">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">所属单元</label>
+                    <select id="input-unit" class="form-select form-select-sm">
+                        <option value="">未选择</option>
+                    </select>
+                </div>
+                <div class="row g-2">
+                    <div class="col-4">
+                        <label class="form-label">试卷页码</label>
+                        <input type="number" min="1" class="form-control form-control-sm" id="input-qpage" value="1">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">答案页码</label>
+                        <input type="number" min="1" class="form-control form-control-sm" id="input-apage" value="1">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">大纲页码</label>
+                        <input type="number" min="1" class="form-control form-control-sm" id="input-spage" value="1">
+                    </div>
+                </div>
+                <div class="mt-auto pt-2">
+                    <button class="btn btn-success w-100" id="btn-save">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="save-toast" id="save-toast">Saved!</div>
+
+<input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+<input type="hidden" id="current-subject-code" value="{{ current_subject.code|default_if_none:'' }}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const subjects = [
+        {% for subject in all_subjects %}
+        { code: "{{ subject.code }}", exam_code: "{{ subject.exam_code }}", name: "{{ subject.name }}" }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const csrfToken = document.getElementById('csrf-token').value;
+    const subjectSelect = document.getElementById('subject-select');
+    const sessionSelect = document.getElementById('session-select');
+    const paperSelect = document.getElementById('paper-select');
+    const questionListEl = document.getElementById('question-list');
+    const codeInput = document.getElementById('input-code');
+    const unitSelect = document.getElementById('input-unit');
+    const qpageInput = document.getElementById('input-qpage');
+    const apageInput = document.getElementById('input-apage');
+    const spageInput = document.getElementById('input-spage');
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const pdfTitle = document.getElementById('pdf-title');
+    const pdfMeta = document.getElementById('pdf-meta');
+    const pageInput = document.getElementById('page-input');
+    const toast = document.getElementById('save-toast');
+    const pdfJsViewerBase = "{% static 'pdfjs-dist/web/viewer.html' %}";
+
+    let currentSubject = document.getElementById('current-subject-code').value || (subjects[0]?.code || '');
+    let currentExamCode = subjectSelect.selectedOptions[0]?.dataset.exam || subjects[0]?.exam_code || '';
+    let currentYearSession = '';
+    let currentPaper = '';
+    let currentQuestionId = null;
+    let currentPdfType = 'qp';
+    let currentPrefix = '';
+    let questionsCache = [];
+    let pageState = { qp: 1, ms: 1, syllabus: 1 };
+    let papersGroupedCache = {};
+    let pdfIframe = null;
+    let pdfEventBus = null;
+    let pdfPageChangeHandler = null;
+    let pdfCurrentFileUrl = '';
+    let pdfReadyPromise = null;
+    let pdfViewerBoundType = null;
+
+    // Helpers
+    function postForm(url, data) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: new URLSearchParams(data).toString()
+        }).then(res => res.json());
+    }
+
+    function renderQuestionList(questions) {
+        questionListEl.innerHTML = '';
+        if (!questions.length) {
+            questionListEl.innerHTML = '<div class="text-muted small">暂无题目，点击右上角“新建题目”创建。</div>';
+            return;
+        }
+        questions.forEach(q => {
+            const item = document.createElement('div');
+            item.className = 'question-chip';
+            item.dataset.id = q.id || '';
+            item.innerHTML = `<span>${q.code}</span><span class="text-muted small">${q.unit_label || ''}</span>`;
+            item.onclick = () => selectQuestion(q);
+            questionListEl.appendChild(item);
+        });
+    }
+
+    function markActiveQuestion(code) {
+        document.querySelectorAll('.question-chip').forEach(el => {
+            if (el.textContent.trim().startsWith(code)) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
+        });
+    }
+
+    function loadUnits() {
+        postForm('/get_units/', { subject: currentSubject })
+            .then(data => {
+                unitSelect.innerHTML = '<option value=\"\">未选择</option>';
+                data.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u.id;
+                    opt.textContent = `Unit ${u.unit_num} - ${u.name}`;
+                    unitSelect.appendChild(opt);
+                });
+            })
+            .catch(err => console.error('Load units error', err));
+    }
+
+    function loadPapers() {
+        sessionSelect.innerHTML = '';
+        paperSelect.innerHTML = '';
+        postForm('/api/papers/by-subject/', { subject: currentSubject })
+            .then(data => {
+                const grouped = {};
+                data.forEach(p => {
+                    if (!grouped[p.year_session]) grouped[p.year_session] = [];
+                    grouped[p.year_session].push(p);
+                });
+                papersGroupedCache = grouped;
+                const sessions = Object.keys(grouped).sort().reverse();
+                sessions.forEach((sess, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = sess;
+                    opt.textContent = sess.toUpperCase();
+                    if (idx === 0) opt.selected = true;
+                    sessionSelect.appendChild(opt);
+                });
+                currentYearSession = sessionSelect.value || '';
+                populatePapers(papersGroupedCache);
+            })
+            .catch(err => console.error('Load papers error', err));
+    }
+
+    function populatePapers(grouped) {
+        const papers = grouped[currentYearSession] || [];
+        paperSelect.innerHTML = '';
+        papers.sort((a, b) => a.paper_num.localeCompare(b.paper_num));
+        papers.forEach((p, idx) => {
+            const opt = document.createElement('option');
+            opt.value = p.paper_num;
+            opt.textContent = p.paper_num;
+            if (idx === 0) opt.selected = true;
+            paperSelect.appendChild(opt);
+        });
+        currentPaper = paperSelect.value || '';
+        if (currentYearSession && currentPaper) {
+            loadQuestions();
+        }
+    }
+
+    function loadQuestions(targetCode = null) {
+        postForm('/api/questions/by-paper/', {
+            subject: currentSubject,
+            year_session: currentYearSession,
+            paper: currentPaper
+        }).then(data => {
+            currentPrefix = data.prefix || '';
+            questionsCache = data.questions || [];
+            renderQuestionList(questionsCache);
+            currentQuestionId = null;
+            let target = null;
+            if (targetCode) {
+                target = questionsCache.find(q => q.code === targetCode);
+            }
+            if (!target && questionsCache.length) {
+                target = questionsCache[0];
+            }
+            if (target) {
+                selectQuestion(target);
+            } else {
+                prepareNewQuestion();
+            }
+        }).catch(err => console.error('Load questions error', err));
+    }
+
+    function selectQuestion(q) {
+        currentQuestionId = q.id || null;
+        codeInput.value = q.code || '';
+        if (q.unit_id) {
+            unitSelect.value = q.unit_id;
+        } else {
+            unitSelect.value = '';
+        }
+        qpageInput.value = q.qpage || 1;
+        apageInput.value = q.apage || 1;
+        spageInput.value = q.spage || 1;
+        pageState.qp = q.qpage || 1;
+        pageState.ms = q.apage || 1;
+        pageState.syllabus = q.spage || 1;
+        pageInput.value = pageState[currentPdfType];
+        markActiveQuestion(q.code);
+        updatePdfTitle();
+        loadPdf(currentPdfType, pageState[currentPdfType]);
+    }
+
+    function prepareNewQuestion() {
+        currentQuestionId = null;
+        codeInput.value = currentPrefix ? `${currentPrefix}-Q${questionsCache.length + 1}` : '';
+        qpageInput.value = 1;
+        apageInput.value = 1;
+        spageInput.value = 1;
+        pageState = { qp: 1, ms: 1, syllabus: 1 };
+        pageInput.value = 1;
+        markActiveQuestion('');
+        updatePdfTitle();
+        loadPdf(currentPdfType, 1);
+    }
+
+    function updatePdfTitle() {
+        const label = codeInput.value || `${currentExamCode}_${currentYearSession}_${currentPaper}`;
+        pdfTitle.textContent = label;
+        pdfMeta.textContent = `${currentExamCode} ${currentYearSession.toUpperCase()} Paper ${currentPaper}`;
+    }
+
+    function getPaperParts() {
+        const manual = (codeInput.value || '').split('-')[0];
+        const parts = manual.split('_');
+        if (parts.length === 3) {
+            return { exam: parts[0], session: parts[1], paper: parts[2] };
+        }
+        return { exam: currentExamCode, session: currentYearSession, paper: currentPaper };
+    }
+
+    function renderPlaceholder() {
+        pdfIframe = null;
+        pdfEventBus = null;
+        pdfPageChangeHandler = null;
+        pdfCurrentFileUrl = '';
+        pdfViewer.innerHTML = `<div class="d-flex h-100 align-items-center justify-content-center text-white-50">
+            <div class="text-center">
+                <i class="bi bi-journal-code" style="font-size: 42px;"></i>
+                <div class="mt-2">请选择完整的试卷信息以预览 PDF</div>
+            </div>
+        </div>`;
+    }
+
+    function computePdfUrl(type) {
+        const parts = getPaperParts();
+        if (!parts.exam || !parts.session || !parts.paper) {
+            return '';
+        }
+        if (type === 'qp') {
+            return `/media/${parts.exam}_${parts.session}_qp_${parts.paper}.pdf`;
+        } else if (type === 'ms') {
+            return `/media/${parts.exam}_${parts.session}_ms_${parts.paper}.pdf`;
+        } else {
+            return `/media/9618-2021-2023-syllabus.pdf`;
+        }
+    }
+
+    function buildViewerSrc(fileUrl, page) {
+        const encodedFile = encodeURIComponent(fileUrl);
+        const safePage = Math.max(1, parseInt(page, 10) || 1);
+        return `${pdfJsViewerBase}?file=${encodedFile}#page=${safePage}`;
+    }
+
+    function ensurePdfIframe() {
+        if (!pdfIframe) {
+            pdfIframe = document.createElement('iframe');
+            pdfIframe.setAttribute('allowfullscreen', 'true');
+            pdfIframe.style.width = '100%';
+            pdfIframe.style.height = '100%';
+            pdfIframe.style.border = 'none';
+            pdfViewer.innerHTML = '';
+            pdfViewer.appendChild(pdfIframe);
+        }
+    }
+
+    function waitForViewerReady() {
+        return new Promise((resolve, reject) => {
+            const started = Date.now();
+            const check = () => {
+                const win = pdfIframe?.contentWindow;
+                const app = win?.PDFViewerApplication;
+                if (app?.eventBus && app.initializedPromise) {
+                    app.initializedPromise.then(() => resolve(app)).catch(reject);
+                    return;
+                }
+                if (Date.now() - started > 8000) {
+                    reject(new Error('PDF viewer init timeout'));
+                    return;
+                }
+                setTimeout(check, 80);
+            };
+            check();
+        });
+    }
+
+    async function bindViewerEvents(type) {
+        try {
+            const app = await pdfReadyPromise;
+            const eventBus = app.eventBus;
+            if (pdfEventBus && pdfPageChangeHandler) {
+                pdfEventBus.off('pagechanging', pdfPageChangeHandler);
+            }
+            pdfEventBus = eventBus;
+            pdfViewerBoundType = type;
+            pdfPageChangeHandler = (evt) => {
+                const p = evt.pageNumber;
+                pageState[type] = p;
+                pageInput.value = p;
+                syncPageToForm();
+            };
+            eventBus.on('pagechanging', pdfPageChangeHandler);
+        } catch (err) {
+            console.error('bindViewerEvents error', err);
+        }
+    }
+
+    function goToPageInViewer(page) {
+        const target = Math.max(1, parseInt(page, 10) || 1);
+        if (pdfReadyPromise) {
+            pdfReadyPromise.then(app => {
+                app.pdfLinkService?.goToPage(target);
+            }).catch(err => console.error('goToPageInViewer error', err));
+        }
+    }
+
+    function loadPdf(type, page) {
+        currentPdfType = type;
+        pageState[type] = Math.max(1, parseInt(page, 10) || 1);
+        pageInput.value = pageState[type];
+        const fileUrl = computePdfUrl(type);
+        if (!fileUrl) {
+            renderPlaceholder();
+            return;
+        }
+        const viewerSrc = buildViewerSrc(fileUrl, pageState[type]);
+        ensurePdfIframe();
+        if (pdfCurrentFileUrl !== fileUrl) {
+            pdfCurrentFileUrl = fileUrl;
+            pdfReadyPromise = new Promise((resolve, reject) => {
+                pdfIframe.onload = () => {
+                    waitForViewerReady().then(resolve).catch(reject);
+                };
+                pdfIframe.onerror = reject;
+            });
+            pdfIframe.src = viewerSrc;
+            bindViewerEvents(type);
+        } else {
+            goToPageInViewer(pageState[type]);
+        }
+    }
+
+    function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 1600);
+    }
+
+    function saveQuestion() {
+        const payload = {
+            subject: currentSubject,
+            code: codeInput.value.trim(),
+            unit_id: unitSelect.value,
+            qpage: qpageInput.value || 1,
+            apage: apageInput.value || 1,
+            spage: spageInput.value || 1,
+        };
+        if (currentQuestionId) payload.id = currentQuestionId;
+        postForm('/api/questions/save/', payload)
+            .then(data => {
+                if (data.success) {
+                    showToast('Saved!');
+                    currentQuestionId = data.id;
+                    loadQuestions(data.code);
+                } else {
+                    alert(data.error || '保存失败');
+                }
+            })
+            .catch(err => alert('保存失败: ' + err));
+    }
+
+    // Event bindings
+    subjectSelect.addEventListener('change', () => {
+        currentSubject = subjectSelect.value;
+        currentExamCode = subjectSelect.selectedOptions[0]?.dataset.exam || '';
+        loadUnits();
+        loadPapers();
+    });
+
+    sessionSelect.addEventListener('change', () => {
+        currentYearSession = sessionSelect.value;
+        if (Object.keys(papersGroupedCache).length) {
+            populatePapers(papersGroupedCache);
+        }
+    });
+
+    paperSelect.addEventListener('change', () => {
+        currentPaper = paperSelect.value;
+        loadQuestions();
+    });
+
+    document.getElementById('btn-new-question').addEventListener('click', (e) => {
+        e.preventDefault();
+        prepareNewQuestion();
+    });
+
+    document.getElementById('btn-view-qp').addEventListener('click', () => {
+        loadPdf('qp', pageState.qp);
+    });
+    document.getElementById('btn-view-ms').addEventListener('click', () => {
+        loadPdf('ms', pageState.ms);
+    });
+    document.getElementById('btn-view-syllabus').addEventListener('click', () => {
+        loadPdf('syllabus', pageState.syllabus);
+    });
+
+    document.getElementById('btn-page-prev').addEventListener('click', () => {
+        const val = Math.max(1, (parseInt(pageInput.value, 10) || 1) - 1);
+        pageState[currentPdfType] = val;
+        pageInput.value = val;
+        syncPageToForm();
+        if (pdfViewerBoundType === currentPdfType && pdfCurrentFileUrl) {
+            goToPageInViewer(val);
+        } else {
+            loadPdf(currentPdfType, val);
+        }
+    });
+    document.getElementById('btn-page-next').addEventListener('click', () => {
+        const val = Math.max(1, (parseInt(pageInput.value, 10) || 1) + 1);
+        pageState[currentPdfType] = val;
+        pageInput.value = val;
+        syncPageToForm();
+        if (pdfViewerBoundType === currentPdfType && pdfCurrentFileUrl) {
+            goToPageInViewer(val);
+        } else {
+            loadPdf(currentPdfType, val);
+        }
+    });
+    pageInput.addEventListener('change', () => {
+        const val = Math.max(1, parseInt(pageInput.value, 10) || 1);
+        pageState[currentPdfType] = val;
+        syncPageToForm();
+        if (pdfViewerBoundType === currentPdfType && pdfCurrentFileUrl) {
+            goToPageInViewer(val);
+        } else {
+            loadPdf(currentPdfType, val);
+        }
+    });
+
+    function syncPageToForm() {
+        if (currentPdfType === 'qp') {
+            qpageInput.value = pageState.qp;
+        } else if (currentPdfType === 'ms') {
+            apageInput.value = pageState.ms;
+        } else {
+            spageInput.value = pageState.syllabus;
+        }
+    }
+
+    document.getElementById('btn-save').addEventListener('click', (e) => {
+        e.preventDefault();
+        saveQuestion();
+    });
+
+    // keep page fields in sync when user edits manually
+    qpageInput.addEventListener('change', () => {
+        pageState.qp = Math.max(1, parseInt(qpageInput.value, 10) || 1);
+        if (currentPdfType === 'qp') {
+            pageInput.value = pageState.qp;
+            if (pdfCurrentFileUrl) {
+                goToPageInViewer(pageState.qp);
+            } else {
+                loadPdf('qp', pageState.qp);
+            }
+        }
+    });
+    apageInput.addEventListener('change', () => {
+        pageState.ms = Math.max(1, parseInt(apageInput.value, 10) || 1);
+        if (currentPdfType === 'ms') {
+            pageInput.value = pageState.ms;
+            if (pdfCurrentFileUrl) {
+                goToPageInViewer(pageState.ms);
+            } else {
+                loadPdf('ms', pageState.ms);
+            }
+        }
+    });
+    spageInput.addEventListener('change', () => {
+        pageState.syllabus = Math.max(1, parseInt(spageInput.value, 10) || 1);
+        if (currentPdfType === 'syllabus') {
+            pageInput.value = pageState.syllabus;
+            if (pdfCurrentFileUrl) {
+                goToPageInViewer(pageState.syllabus);
+            } else {
+                loadPdf('syllabus', pageState.syllabus);
+            }
+        }
+    });
+
+    // Init
+    loadUnits();
+    loadPapers();
+</script>
+{% endblock %}
