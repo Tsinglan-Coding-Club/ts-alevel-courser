@@ -1,0 +1,44 @@
+{% load i18n admin_urls %}
+
+{% if app_list %}
+    {% for app in app_list %}
+        <div class="app-{{ app.app_label }} module{% if app.app_url %} collapse{% endif %}">
+            <table>
+                <caption>
+                    {% if app.app_url %}
+                        <a href="{{ app.app_url }}" class="section">{{ app.name }}</a>
+                    {% else %}
+                        {{ app.name }}
+                    {% endif %}
+                </caption>
+                {% for model in app.models %}
+                    <tr class="model-{{ model.object_name|lower }}">
+                        {% if model.admin_url %}
+                            <th scope="row"><a href="{{ model.admin_url }}">{{ model.name }}</a></th>
+                        {% else %}
+                            <th scope="row">{{ model.name }}</th>
+                        {% endif %}
+
+                        {% if model.add_url %}
+                            <td><a href="{{ model.add_url }}" class="addlink">{% trans 'Add' %}</a></td>
+                        {% else %}
+                            <td>&nbsp;</td>
+                        {% endif %}
+
+                        {% if model.admin_url and show_changelinks %}
+                            <td><a href="{{ model.admin_url }}" class="changelink">{% trans 'Change' %}</a></td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                {% if app.app_label == 'pastpaper' %}
+                    <tr class="model-upload-question">
+                        <th scope="row"><a href="{% url 'pastpaper:create_question' %}">{% trans "上传问题" %}</a></th>
+                        <td><a href="{% url 'pastpaper:create_question' %}" class="changelink">{% trans "进入" %}</a></td>
+                    </tr>
+                {% endif %}
+            </table>
+        </div>
+    {% endfor %}
+{% else %}
+    <p>{% trans "You don't have permission to view or edit anything." %}</p>
+{% endif %}
