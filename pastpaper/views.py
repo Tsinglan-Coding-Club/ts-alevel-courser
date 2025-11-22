@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Q
@@ -13,6 +13,25 @@ from .models import (
     HistoryRecord,
     Setting,
 )
+
+
+staff_required = user_passes_test(lambda u: u.is_staff)
+
+
+@login_required
+@staff_required
+def create_question_view(request):
+    """教师端创建题目页面"""
+    subjects = Subject.objects.all().order_by('id')
+    current_subject = subjects.first() if subjects else None
+    return render(
+        request,
+        'pastpaper/create_question.html',
+        {
+            'current_subject': current_subject,
+            'all_subjects': subjects,
+        },
+    )
 
 
 @login_required
@@ -198,6 +217,150 @@ def get_question_info(request):
         })
     except Question.DoesNotExist:
         return JsonResponse({'error': 'Question not found'}, status=404)
+
+
+@login_required
+@staff_required
+@require_POST
+def list_papers_by_subject(request):
+    """根据学科列出历年试卷（教师创建页使用）"""
+    subject_code = request.POST.get('subject')
+    if not subject_code:
+        return JsonResponse({'error': 'Subject code is required'}, status=400)
+
+    try:
+        subject = Subject.objects.get(code=subject_code)
+    except Subject.DoesNotExist:
+        return JsonResponse({'error': 'Subject not found'}, status=404)
+
+    papers = PastPaper.objects.filter(subject=subject).order_by('-year', 'session', 'paper_num')
+    data = [
+        {
+            'code': pp.code,
+            'year': pp.year,
+            'session': pp.session,
+            'paper_num': pp.paper_num,
+            'year_session': f"{pp.session}{str(pp.year)[-2:]}",
+        }
+        for pp in papers
+    ]
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@staff_required
+@require_POST
+def get_questions_by_paper(request):
+    """根据试卷编号获取题目列表（按编码前缀匹配）"""
+    subject_code = request.POST.get('subject')
+    year_session = request.POST.get('year_session')
+    paper_num = request.POST.get('paper')
+
+    if not subject_code or not year_session or not paper_num:
+        return JsonResponse({'error': 'subject, year_session and paper are required'}, status=400)
+
+    try:
+        subject = Subject.objects.get(code=subject_code)
+    except Subject.DoesNotExist:
+        return JsonResponse({'error': 'Subject not found'}, status=404)
+
+    prefix = f"{subject.exam_code}_{year_session}_{paper_num}"
+    questions = (
+        Question.objects.filter(subject=subject, code__startswith=f"{prefix}-")
+        .select_related('unit')
+        .order_by('code')
+    )
+    data = [
+        {
+            'id': q.id,
+            'code': q.code,
+            'unit_id': q.unit_id,
+            'unit_label': f"Unit {q.unit.unit_num}: {q.unit.name}" if q.unit else '',
+            'qpage': q.qpage,
+            'apage': q.apage,
+            'spage': q.spage,
+        }
+        for q in questions
+    ]
+    return JsonResponse({'questions': data, 'prefix': prefix})
+
+
+@login_required
+@staff_required
+@require_POST
+def save_question(request):
+    """保存或更新题目信息（仅限教师）"""
+    subject_code = request.POST.get('subject')
+    code = request.POST.get('code')
+    unit_id = request.POST.get('unit_id')
+    qpage = request.POST.get('qpage')
+    apage = request.POST.get('apage')
+    spage = request.POST.get('spage')
+    question_id = request.POST.get('id')
+
+    if not subject_code or not code:
+        return JsonResponse({'error': 'Subject and code are required'}, status=400)
+
+    try:
+        subject = Subject.objects.get(code=subject_code)
+    except Subject.DoesNotExist:
+        return JsonResponse({'error': 'Subject not found'}, status=404)
+
+    if subject.exam_code and not code.startswith(str(subject.exam_code)):
+        return JsonResponse({'error': f'题目代码必须以学科考试代码 {subject.exam_code} 开头'}, status=400)
+
+    def parse_int(val, default):
+        try:
+            return int(val)
+        except (TypeError, ValueError):
+            return default
+
+    qpage_val = parse_int(qpage, 1)
+    apage_val = parse_int(apage, 1)
+    spage_val = parse_int(spage, 1)
+
+    unit = None
+    if unit_id:
+        try:
+            unit = Unit.objects.get(id=unit_id, subject=subject)
+        except Unit.DoesNotExist:
+            return JsonResponse({'error': 'Unit not found for this subject'}, status=404)
+
+    created = False
+    try:
+        if question_id:
+            question = Question.objects.get(id=question_id)
+            if question.subject_id != subject.id:
+                return JsonResponse({'error': '不允许更改题目所属学科'}, status=400)
+            question.code = code
+            question.unit = unit
+            question.qpage = qpage_val
+            question.apage = apage_val
+            question.spage = spage_val
+            question.save()
+        else:
+            # 避免用相同code覆盖其他学科
+            if Question.objects.filter(code=code).exclude(subject=subject).exists():
+                return JsonResponse({'error': '存在同名题目且属于其他学科，无法覆盖'}, status=400)
+            question, created = Question.objects.update_or_create(
+                code=code,
+                defaults={
+                    'subject': subject,
+                    'unit': unit,
+                    'qpage': qpage_val,
+                    'apage': apage_val,
+                    'spage': spage_val,
+                },
+            )
+    except Exception as exc:  # 防御性兜底，避免500
+        return JsonResponse({'error': str(exc)}, status=500)
+
+    return JsonResponse({
+        'success': True,
+        'id': question.id,
+        'created': created,
+        'code': question.code,
+    })
 
 
 @login_required
