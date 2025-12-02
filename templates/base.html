@@ -170,6 +170,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'pastpaper:feedback' %}">Feedback</a>
                     </li>
+                    {% if can_create_questions %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'create_question' %}active{% endif %}" href="{% url 'pastpaper:create_question' %}">Create Question</a>
+                    </li>
+                    {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">

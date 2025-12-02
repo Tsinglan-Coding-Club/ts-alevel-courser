@@ -125,7 +125,7 @@
                     <label class="form-label mb-1">学科代码</label>
                     <select id="subject-select" class="form-select form-select-sm">
                         {% for subject in all_subjects %}
-                        <option value="{{ subject.code }}" data-exam="{{ subject.exam_code }}" {% if current_subject and subject.id == current_subject.id %}selected{% endif %}>
+                        <option value="{{ subject.code }}" data-exam="{{ subject.exam_code }}" data-syllabus="{{ subject.syllabus_media_url|default_if_none:'' }}" {% if current_subject and subject.id == current_subject.id %}selected{% endif %}>
                             {{ subject.exam_code }} - {{ subject.name }}
                         </option>
                         {% endfor %}
@@ -253,6 +253,7 @@
 
     let currentSubject = document.getElementById('current-subject-code').value || (subjects[0]?.code || '');
     let currentExamCode = subjectSelect.selectedOptions[0]?.dataset.exam || subjects[0]?.exam_code || '';
+    let currentSubjectSyllabusUrl = subjectSelect.selectedOptions[0]?.dataset.syllabus || '';
     let currentYearSession = '';
     let currentPaper = '';
     let currentQuestionId = null;
@@ -267,6 +268,7 @@
     let pdfCurrentFileUrl = '';
     let pdfReadyPromise = null;
     let pdfViewerBoundType = null;
+    let unitsCache = [];
 
     // Helpers
     function postForm(url, data) {
@@ -306,16 +308,66 @@
         });
     }
 
+    function findUnitById(unitId) {
+        if (!unitId) return null;
+        return unitsCache.find(u => String(u.id) === String(unitId)) || null;
+    }
+
+    function syncSyllabusInput(unitId, preferredPage = null) {
+        let page = preferredPage;
+        if (!page || page < 1) {
+            const unit = findUnitById(unitId);
+            page = unit ? (unit.syllabus_page || 1) : 1;
+        }
+        spageInput.value = page;
+        pageState.syllabus = page;
+        if (currentPdfType === 'syllabus') {
+            pageInput.value = page;
+            if (pdfCurrentFileUrl) {
+                goToPageInViewer(page);
+            } else {
+                loadPdf('syllabus', page);
+            }
+        }
+        return page;
+    }
+
+    function updateUnitSyllabusCache(unitId, page) {
+        if (!unitId) return;
+        const unit = findUnitById(unitId);
+        if (unit) {
+            unit.syllabus_page = page;
+        }
+        Array.from(unitSelect.options).forEach(opt => {
+            if (opt.value === String(unitId)) {
+                opt.dataset.syllabusPage = page;
+            }
+        });
+    }
+
     function loadUnits() {
         postForm('/get_units/', { subject: currentSubject })
             .then(data => {
+                unitsCache = data || [];
+                if (!currentSubjectSyllabusUrl && unitsCache.length) {
+                    currentSubjectSyllabusUrl = unitsCache[0].syllabus_url || '';
+                }
+                const prevUnit = unitSelect.value;
                 unitSelect.innerHTML = '<option value=\"\">未选择</option>';
-                data.forEach(u => {
+                unitsCache.forEach(u => {
                     const opt = document.createElement('option');
                     opt.value = u.id;
                     opt.textContent = `Unit ${u.unit_num} - ${u.name}`;
+                    opt.dataset.syllabusPage = u.syllabus_page || 1;
                     unitSelect.appendChild(opt);
                 });
+                if (prevUnit && findUnitById(prevUnit)) {
+                    unitSelect.value = prevUnit;
+                    syncSyllabusInput(prevUnit);
+                } else {
+                    unitSelect.value = '';
+                    syncSyllabusInput(null);
+                }
             })
             .catch(err => console.error('Load units error', err));
     }
@@ -397,10 +449,10 @@
         }
         qpageInput.value = q.qpage || 1;
         apageInput.value = q.apage || 1;
-        spageInput.value = q.spage || 1;
+        const syllabusPage = syncSyllabusInput(q.unit_id, q.syllabus_page || null);
         pageState.qp = q.qpage || 1;
         pageState.ms = q.apage || 1;
-        pageState.syllabus = q.spage || 1;
+        pageState.syllabus = syllabusPage;
         pageInput.value = pageState[currentPdfType];
         markActiveQuestion(q.code);
         updatePdfTitle();
@@ -412,12 +464,14 @@
         codeInput.value = currentPrefix ? `${currentPrefix}-Q${questionsCache.length + 1}` : '';
         qpageInput.value = 1;
         apageInput.value = 1;
-        spageInput.value = 1;
-        pageState = { qp: 1, ms: 1, syllabus: 1 };
-        pageInput.value = 1;
+        const unit = findUnitById(unitSelect.value);
+        const unitPage = unit ? (unit.syllabus_page || 1) : 1;
+        spageInput.value = unitPage;
+        pageState = { qp: 1, ms: 1, syllabus: unitPage };
+        pageInput.value = pageState[currentPdfType];
         markActiveQuestion('');
         updatePdfTitle();
-        loadPdf(currentPdfType, 1);
+        loadPdf(currentPdfType, pageState[currentPdfType]);
     }
 
     function updatePdfTitle() {
@@ -458,7 +512,7 @@
         } else if (type === 'ms') {
             return `/media/${parts.exam}_${parts.session}_ms_${parts.paper}.pdf`;
         } else {
-            return `/media/9618-2021-2023-syllabus.pdf`;
+            return currentSubjectSyllabusUrl || '';
         }
     }
 
@@ -536,6 +590,9 @@
         pageInput.value = pageState[type];
         const fileUrl = computePdfUrl(type);
         if (!fileUrl) {
+            if (type === 'syllabus') {
+                alert('当前学科未配置大纲文件');
+            }
             renderPlaceholder();
             return;
         }
@@ -569,7 +626,7 @@
             unit_id: unitSelect.value,
             qpage: qpageInput.value || 1,
             apage: apageInput.value || 1,
-            spage: spageInput.value || 1,
+            syllabus_page: spageInput.value || '',
         };
         if (currentQuestionId) payload.id = currentQuestionId;
         postForm('/api/questions/save/', payload)
@@ -577,6 +634,11 @@
                 if (data.success) {
                     showToast('Saved!');
                     currentQuestionId = data.id;
+                    if (unitSelect.value) {
+                        const pageVal = Math.max(1, parseInt(spageInput.value, 10) || 1);
+                        updateUnitSyllabusCache(unitSelect.value, pageVal);
+                        pageState.syllabus = pageVal;
+                    }
                     loadQuestions(data.code);
                 } else {
                     alert(data.error || '保存失败');
@@ -589,6 +651,7 @@
     subjectSelect.addEventListener('change', () => {
         currentSubject = subjectSelect.value;
         currentExamCode = subjectSelect.selectedOptions[0]?.dataset.exam || '';
+        currentSubjectSyllabusUrl = subjectSelect.selectedOptions[0]?.dataset.syllabus || '';
         loadUnits();
         loadPapers();
     });
@@ -603,6 +666,10 @@
     paperSelect.addEventListener('change', () => {
         currentPaper = paperSelect.value;
         loadQuestions();
+    });
+
+    unitSelect.addEventListener('change', () => {
+        syncSyllabusInput(unitSelect.value);
     });
 
     document.getElementById('btn-new-question').addEventListener('click', (e) => {

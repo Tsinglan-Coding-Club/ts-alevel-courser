@@ -17,7 +17,7 @@ cs_subject, _ = Subject.objects.get_or_create(
     defaults={
         'name': 'CIE A-Level Computer Science',
         'exam_code': '9618',
-        'syllabus_url': 'https://cdn.computerscience.vip/pdf/9618-2021-2023-syllabus.pdf'
+        'syllabus_url': '9618-2021-2023-syllabus.pdf'
     }
 )
 
@@ -91,7 +91,6 @@ for q_data in questions_data:
             'unit': unit1,
             'qpage': q_data["qpage"],
             'apage': q_data["apage"],
-            'spage': 1
         }
     )
 

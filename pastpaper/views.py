@@ -13,13 +13,14 @@ from .models import (
     HistoryRecord,
     Setting,
 )
+from .permissions import has_question_editor_privileges
 
 
-staff_required = user_passes_test(lambda u: u.is_staff)
+question_editor_required = user_passes_test(has_question_editor_privileges)
 
 
 @login_required
-@staff_required
+@question_editor_required
 def create_question_view(request):
     """教师端创建题目页面"""
     subjects = Subject.objects.all().order_by('id')
@@ -116,8 +117,18 @@ def get_units(request):
     
     try:
         subject = Subject.objects.get(code=subject_code)
-        units = Unit.objects.filter(subject=subject).values('id', 'unit_num', 'name')
-        return JsonResponse(list(units), safe=False)
+        units = Unit.objects.filter(subject=subject).order_by('unit_num')
+        data = [
+            {
+                'id': unit.id,
+                'unit_num': unit.unit_num,
+                'name': unit.name,
+                'syllabus_page': unit.syllabus_page,
+                'syllabus_url': subject.syllabus_media_url,
+            }
+            for unit in units
+        ]
+        return JsonResponse(data, safe=False)
     except Subject.DoesNotExist:
         return JsonResponse([], safe=False)
 
@@ -153,7 +164,9 @@ def get_list(request):
                 'code': q.code,
                 'qpage': q.qpage,
                 'apage': q.apage,
-                'spage': q.spage,
+                'syllabus_page': q.syllabus_page,
+                'syllabus_url': subject.syllabus_media_url,
+                'unit_num': q.unit.unit_num if q.unit else None,
                 'checked': checked,
                 'save': save
             })
@@ -213,14 +226,15 @@ def get_question_info(request):
             'code': question.code,
             'qpage': question.qpage,
             'apage': question.apage,
-            'spage': question.spage
+            'syllabus_page': question.syllabus_page,
+            'syllabus_url': question.subject.syllabus_media_url,
         })
     except Question.DoesNotExist:
         return JsonResponse({'error': 'Question not found'}, status=404)
 
 
 @login_required
-@staff_required
+@question_editor_required
 @require_POST
 def list_papers_by_subject(request):
     """根据学科列出历年试卷（教师创建页使用）"""
@@ -248,7 +262,7 @@ def list_papers_by_subject(request):
 
 
 @login_required
-@staff_required
+@question_editor_required
 @require_POST
 def get_questions_by_paper(request):
     """根据试卷编号获取题目列表（按编码前缀匹配）"""
@@ -278,7 +292,7 @@ def get_questions_by_paper(request):
             'unit_label': f"Unit {q.unit.unit_num}: {q.unit.name}" if q.unit else '',
             'qpage': q.qpage,
             'apage': q.apage,
-            'spage': q.spage,
+            'syllabus_page': q.syllabus_page,
         }
         for q in questions
     ]
@@ -286,7 +300,7 @@ def get_questions_by_paper(request):
 
 
 @login_required
-@staff_required
+@question_editor_required
 @require_POST
 def save_question(request):
     """保存或更新题目信息（仅限教师）"""
@@ -295,7 +309,7 @@ def save_question(request):
     unit_id = request.POST.get('unit_id')
     qpage = request.POST.get('qpage')
     apage = request.POST.get('apage')
-    spage = request.POST.get('spage')
+    syllabus_page_raw = request.POST.get('syllabus_page')
     question_id = request.POST.get('id')
 
     if not subject_code or not code:
@@ -317,7 +331,7 @@ def save_question(request):
 
     qpage_val = parse_int(qpage, 1)
     apage_val = parse_int(apage, 1)
-    spage_val = parse_int(spage, 1)
+    syllabus_page_val = parse_int(syllabus_page_raw, None) if syllabus_page_raw else None
 
     unit = None
     if unit_id:
@@ -336,7 +350,6 @@ def save_question(request):
             question.unit = unit
             question.qpage = qpage_val
             question.apage = apage_val
-            question.spage = spage_val
             question.save()
         else:
             # 避免用相同code覆盖其他学科
@@ -349,11 +362,14 @@ def save_question(request):
                     'unit': unit,
                     'qpage': qpage_val,
                     'apage': apage_val,
-                    'spage': spage_val,
                 },
             )
     except Exception as exc:  # 防御性兜底，避免500
         return JsonResponse({'error': str(exc)}, status=500)
+
+    if unit and syllabus_page_val is not None and unit.syllabus_page != syllabus_page_val:
+        unit.syllabus_page = syllabus_page_val
+        unit.save(update_fields=['syllabus_page'])
 
     return JsonResponse({
         'success': True,

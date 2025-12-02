@@ -409,6 +409,7 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = "{% static 'js/pdf.worker.min.js' %}";
     
     let currentSubject = '{{ current_subject.code }}';
+    let currentSubjectSyllabusUrl = "{{ current_subject.syllabus_media_url|default_if_none:''|escapejs }}";
     let currentUnit = null;
     let currentQuestionId = null;
     let currentQuestionCode = null;
@@ -416,10 +417,12 @@
     let currentPdfUrl = null;
     let currentPdfType = 'qp';
     let currentPage = 1;
+    let currentUnitSyllabusPage = 1;
     let isPastPaperMode = false;
     let questionsList = []; // Store all questions for navigation
     let displayedQuestionsList = []; // Store currently displayed/filtered questions
     let currentQuestionIndex = -1; // Current position in displayedQuestionsList
+    let unitMetadata = {};
     
     // 加载单元列表
     function loadUnits() {
@@ -435,6 +438,7 @@
         .then(data => {
             const list = document.getElementById('question-list');
             list.innerHTML = '';
+            unitMetadata = {};
 
             // 更新标题和计数
             document.getElementById('questions-title').textContent = 'Units';
@@ -445,6 +449,13 @@
 
             // 添加单元项
             data.forEach(unit => {
+                unitMetadata[unit.unit_num] = {
+                    syllabus_page: unit.syllabus_page || 1,
+                    syllabus_url: unit.syllabus_url || ''
+                };
+                if (!currentSubjectSyllabusUrl && unit.syllabus_url) {
+                    currentSubjectSyllabusUrl = unit.syllabus_url;
+                }
                 const item = document.createElement('div');
                 item.className = 'unit-item';
                 item.innerHTML = `
@@ -474,6 +485,7 @@
         isPastPaperMode = false;
         currentQuestionId = null;
         currentQuestionCode = null;
+        currentUnitSyllabusPage = 1;
 
         // 清空PDF查看器
         const viewer = document.getElementById('pdf-viewer');
@@ -495,6 +507,8 @@
         isPastPaperMode = false;
         document.getElementById('is-pastpaper-mode').value = 'false';
         currentPastPaperCode = null;
+        const unitInfo = unitMetadata[unitNum];
+        currentUnitSyllabusPage = unitInfo && unitInfo.syllabus_page ? unitInfo.syllabus_page : 1;
 
         // 显示导航栏
         document.getElementById('nav-bar').style.display = 'flex';
@@ -513,6 +527,7 @@
         document.getElementById('is-pastpaper-mode').value = 'true';
         currentQuestionId = null;
         currentPastPaperCode = null;
+        currentUnitSyllabusPage = 1;
 
         // 显示导航栏
         document.getElementById('nav-bar').style.display = 'flex';
@@ -553,7 +568,7 @@
                 if (q.checked) item.classList.add('completed');
                 if (q.save) item.classList.add('saved');
                 item.textContent = `${index + 1}. ${q.code}`;
-                item.onclick = () => selectQuestion(q.id, q.code, q.qpage, q.apage, index);
+                item.onclick = () => selectQuestion(q.id, q.code, q.qpage, q.apage, index, q.syllabus_page, q.unit_num);
                 list.appendChild(item);
             });
         })
@@ -616,11 +631,17 @@
     }
     
     // 选择题目
-    function selectQuestion(id, code, qpage, apage, index) {
+    function selectQuestion(id, code, qpage, apage, index, syllabusPage = null, unitNum = null) {
         currentQuestionId = id;
         currentQuestionCode = code;
         currentPastPaperCode = null;
         currentPage = qpage || 1;
+        if (unitNum) {
+            currentUnit = unitNum;
+        }
+        const unitInfo = unitMetadata[unitNum || currentUnit] || null;
+        const resolvedSyllabusPage = (typeof syllabusPage === 'number' ? syllabusPage : unitInfo?.syllabus_page);
+        currentUnitSyllabusPage = resolvedSyllabusPage && resolvedSyllabusPage > 0 ? resolvedSyllabusPage : 1;
 
         // 在displayedQuestionsList中查找当前题目的索引
         const displayedIndex = displayedQuestionsList.findIndex(q => q.id === id);
@@ -680,7 +701,15 @@
                 selectPastPaper(prevItem.code, currentQuestionIndex - 1, originalIndex);
             } else {
                 // 普通题目模式
-                selectQuestion(prevItem.id, prevItem.code, prevItem.qpage, prevItem.apage, currentQuestionIndex - 1);
+                selectQuestion(
+                    prevItem.id,
+                    prevItem.code,
+                    prevItem.qpage,
+                    prevItem.apage,
+                    currentQuestionIndex - 1,
+                    prevItem.syllabus_page,
+                    prevItem.unit_num
+                );
             }
 
             // 更新UI中的active状态
@@ -703,7 +732,15 @@
                 selectPastPaper(nextItem.code, currentQuestionIndex + 1, originalIndex);
             } else {
                 // 普通题目模式
-                selectQuestion(nextItem.id, nextItem.code, nextItem.qpage, nextItem.apage, currentQuestionIndex + 1);
+                selectQuestion(
+                    nextItem.id,
+                    nextItem.code,
+                    nextItem.qpage,
+                    nextItem.apage,
+                    currentQuestionIndex + 1,
+                    nextItem.syllabus_page,
+                    nextItem.unit_num
+                );
             }
 
             // 更新UI中的active状态
@@ -762,20 +799,16 @@
     // 加载PDF
     function loadPDF(code, type, page) {
         currentPdfType = type;
-        const baseParts = code.split('-')[0];  // e.g., "9618_s23_11"
-        // 提取学科代码、年份和试卷号
-        const parts = baseParts.split('_');  // ["9618", "s23", "11"]
-        const subjectCode = parts[0];  // "9618"
-        const yearSession = parts[1];  // "s23"
-        const paper = parts[2];  // "11"
         let pdfUrl;
+        let targetPage = Math.max(1, page || 1);
         
-        if (type === 'qp') {
-            pdfUrl = `/media/${subjectCode}_${yearSession}_qp_${paper}.pdf`;
-        } else if (type === 'ms') {
-            pdfUrl = `/media/${subjectCode}_${yearSession}_ms_${paper}.pdf`;
-        } else if (type === 'syllabus') {
-            pdfUrl = '/media/9618-2021-2023-syllabus.pdf';
+        if (type === 'syllabus') {
+            targetPage = Math.max(1, page || currentUnitSyllabusPage || 1);
+            if (!currentSubjectSyllabusUrl) {
+                alert('当前学科未配置大纲文件');
+                return;
+            }
+            pdfUrl = currentSubjectSyllabusUrl;
         } else if (type === 'ppt') {
             alert('此区域暂未开放哦');
             return;
@@ -786,13 +819,27 @@
                 alert('此区域暂未开放哦');
                 return;
             }
+        } else {
+            const baseParts = code.split('-')[0];  // e.g., "9618_s23_11"
+            const parts = baseParts.split('_');  // ["9618", "s23", "11"]
+            const subjectCode = parts[0];  // "9618"
+            const yearSession = parts[1];  // "s23"
+            const paper = parts[2];  // "11"
+
+            if (type === 'qp') {
+                pdfUrl = `/media/${subjectCode}_${yearSession}_qp_${paper}.pdf`;
+            } else if (type === 'ms') {
+                pdfUrl = `/media/${subjectCode}_${yearSession}_ms_${paper}.pdf`;
+            } else {
+                return;
+            }
         }
         
         currentPdfUrl = pdfUrl;
         
         // 使用iframe加载PDF
         const viewer = document.getElementById('pdf-viewer');
-        viewer.innerHTML = `<iframe src="${pdfUrl}#page=${page}" width="100%" height="100%" style="border: none;"></iframe>`;
+        viewer.innerHTML = `<iframe src="${pdfUrl}#page=${targetPage}" width="100%" height="100%" style="border: none;"></iframe>`;
     }
     
     // PDF控制按钮
@@ -840,7 +887,7 @@
     };
     
     document.getElementById('btn-syllabus').onclick = () => {
-        loadPDF('', 'syllabus', 1);
+        loadPDF('', 'syllabus', currentUnitSyllabusPage || 1);
     };
     
     document.getElementById('btn-ppt').onclick = () => {
