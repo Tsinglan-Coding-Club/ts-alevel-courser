@@ -127,6 +127,7 @@ ts-alevel-courser/
 - `subject`: Foreign key to Subject
 - `unit_num`: Integer (1-20)
 - `name`: Unit name (displays with subject code)
+- `syllabus_page`: Default page to open within the subject syllabus
 
 **Question**
 - `code`: Question code (e.g., "9618_s23_11-Q1")
@@ -134,7 +135,7 @@ ts-alevel-courser/
 - `unit`: Foreign key to Unit
 - `qpage`: Question paper page number
 - `apage`: Mark scheme page number
-- `spage`: Syllabus page number
+- `syllabus_page`: Derived from the linked unit's syllabus page
 
 **PastPaper**
 - `code`: Paper code (e.g., "9618_s23_11")
@@ -200,6 +201,16 @@ ts-alevel-courser/
 **Test User**
 - Username: `testuser`
 - Password: `test123`
+
+## 👩‍🏫 Teacher Accounts
+
+Run the helper script to create or update a teacher account (and ensure the `教师` group exists with the correct permissions):
+
+```bash
+python add_teacher_account.py --username teacher01 --email teacher01@example.com
+```
+
+The script will prompt for a password if one is not supplied via `--password`.
 
 ## 🚀 Deployment
 

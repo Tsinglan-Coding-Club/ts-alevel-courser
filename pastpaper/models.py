@@ -1,3 +1,6 @@
+from urllib.parse import urljoin
+
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -7,7 +10,12 @@ class Subject(models.Model):
     code = models.CharField(max_length=50, unique=True, verbose_name="学科代码")
     name = models.CharField(max_length=255, verbose_name="学科名称")
     exam_code = models.CharField(max_length=10, verbose_name="考试代码")  # 如9618, 0984
-    syllabus_url = models.URLField(blank=True, verbose_name="大纲URL")
+    syllabus_url = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="大纲文件名",
+        help_text="请填写media目录下的文件名，例如 9618-2021-2023-syllabus.pdf",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -18,6 +26,34 @@ class Subject(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.exam_code})"
+
+    @property
+    def syllabus_filename(self):
+        """返回清洗后的大纲文件名（去掉协议和media前缀）"""
+        value = (self.syllabus_url or '').strip()
+        if not value:
+            return ''
+        normalized = value.replace('\\', '/')
+        lower_value = normalized.lower()
+        if lower_value.startswith('http://') or lower_value.startswith('https://'):
+            normalized = normalized.split('://', 1)[1]
+        media_prefix = settings.MEDIA_URL.lstrip('/')
+        if media_prefix and normalized.startswith(media_prefix):
+            normalized = normalized[len(media_prefix):]
+        if normalized.startswith('/'):
+            normalized = normalized.lstrip('/')
+        return normalized
+
+    @property
+    def syllabus_media_url(self):
+        """拼接MEDIA_URL后返回可访问的URL"""
+        filename = self.syllabus_filename
+        if not filename:
+            return ''
+        media_url = settings.MEDIA_URL or '/media/'
+        if not media_url.endswith('/'):
+            media_url = f"{media_url}/"
+        return urljoin(media_url, filename)
 
 
 class Unit(models.Model):
@@ -30,6 +66,7 @@ class Unit(models.Model):
         related_name='units',
         verbose_name="所属学科"
     )
+    syllabus_page = models.IntegerField(default=1, verbose_name="大纲页码")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -124,7 +161,6 @@ class Question(models.Model):
     )
     qpage = models.IntegerField(default=1, verbose_name="试卷页码")
     apage = models.IntegerField(default=1, verbose_name="答案页码")
-    spage = models.IntegerField(default=1, verbose_name="大纲页码")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -151,6 +187,13 @@ class Question(models.Model):
         base = parts[:9]
         paper = parts[9:11]
         return f"{base}ms_{paper}.pdf"
+
+    @property
+    def syllabus_page(self):
+        """������Ŀ������Ԫ�Ĵ�Ҫҳ��"""
+        if self.unit and getattr(self.unit, 'syllabus_page', None):
+            return self.unit.syllabus_page
+        return 1
 
 
 class UserTag(models.Model):

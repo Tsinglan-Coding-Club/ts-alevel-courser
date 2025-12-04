@@ -41,26 +41,25 @@ print(f"Created {len(units_data)} units")
 # Create sample questions for Unit 1
 unit1 = Unit.objects.get(unit_num=1)
 questions_data = [
-    ("9618_s23_11-Q1", 1, 1, 1),
-    ("9618_s23_12-Q4", 1, 4, 1),
-    ("9618_w23_11-Q1", 1, 1, 1),
-    ("9618_w23_12-Q3", 1, 3, 1),
-    ("9618_w23_12-Q6", 1, 6, 1),
-    ("9618_w23_13-Q1", 1, 1, 1),
-    ("9618_w23_13-Q2", 1, 2, 1),
-    ("9618_s23_13-Q7a", 1, 7, 1),
-    ("9618_s22_11-Q1", 1, 1, 1),
-    ("9618_w22_11-Q1", 1, 1, 1),
+    ("9618_s23_11-Q1", 1, 1),
+    ("9618_s23_12-Q4", 1, 4),
+    ("9618_w23_11-Q1", 1, 1),
+    ("9618_w23_12-Q3", 1, 3),
+    ("9618_w23_12-Q6", 1, 6),
+    ("9618_w23_13-Q1", 1, 1),
+    ("9618_w23_13-Q2", 1, 2),
+    ("9618_s23_13-Q7a", 1, 7),
+    ("9618_s22_11-Q1", 1, 1),
+    ("9618_w22_11-Q1", 1, 1),
 ]
 
-for code, qpage, apage, spage in questions_data:
+for code, qpage, apage in questions_data:
     Question.objects.get_or_create(
         code=code,
         defaults={
             'unit': unit1,
             'qpage': qpage,
             'apage': apage,
-            'spage': spage
         }
     )
 

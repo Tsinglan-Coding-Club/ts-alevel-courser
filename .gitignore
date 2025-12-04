@@ -2,4 +2,5 @@ db.sqlite3
 */*.pyc
 *.pyc
 media/avatars/*
-.idea/
+.idea/*
+todo.md
