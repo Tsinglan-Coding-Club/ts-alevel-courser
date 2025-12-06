@@ -229,6 +229,7 @@ def main():
                         for comp_type in COMPONENT_TYPES:
                             filename = f"{subject_str}_{series}{yy}_{comp_type}_{paper_suffix}.pdf"
                             url = f"{BASE_URL}/{filename}"
+                            print(url)
                             dest = out_dir / filename
 
                             if dest.exists():

@@ -66,7 +66,7 @@ class UnitAdmin(admin.ModelAdmin):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ['code', 'subject', 'unit', 'qpage', 'apage', 'get_syllabus_page', 'created_at']
+    list_display = ['code', 'subject', 'unit', 'qpage', 'apage', 'created_at']
     list_filter = ['subject', 'unit', 'created_at']
     search_fields = ['code']
     ordering = ['-created_at']
@@ -97,10 +97,6 @@ class QuestionAdmin(admin.ModelAdmin):
             messages.error(request, f"错误：选择的单元不属于所选学科！请选择 {obj.subject.code} 学科的单元。")
             return
         super().save_model(request, obj, form, change)
-
-    @admin.display(description="大纲页码")
-    def get_syllabus_page(self, obj):
-        return obj.syllabus_page
 
 
 @admin.register(PastPaper)

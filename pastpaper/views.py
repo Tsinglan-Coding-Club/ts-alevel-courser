@@ -309,7 +309,6 @@ def save_question(request):
     unit_id = request.POST.get('unit_id')
     qpage = request.POST.get('qpage')
     apage = request.POST.get('apage')
-    syllabus_page_raw = request.POST.get('syllabus_page')
     question_id = request.POST.get('id')
 
     if not subject_code or not code:
@@ -331,7 +330,6 @@ def save_question(request):
 
     qpage_val = parse_int(qpage, 1)
     apage_val = parse_int(apage, 1)
-    syllabus_page_val = parse_int(syllabus_page_raw, None) if syllabus_page_raw else None
 
     unit = None
     if unit_id:
@@ -366,10 +364,6 @@ def save_question(request):
             )
     except Exception as exc:  # 防御性兜底，避免500
         return JsonResponse({'error': str(exc)}, status=500)
-
-    if unit and syllabus_page_val is not None and unit.syllabus_page != syllabus_page_val:
-        unit.syllabus_page = syllabus_page_val
-        unit.save(update_fields=['syllabus_page'])
 
     return JsonResponse({
         'success': True,

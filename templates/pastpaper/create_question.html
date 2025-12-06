@@ -199,17 +199,13 @@
                     </select>
                 </div>
                 <div class="row g-2">
-                    <div class="col-4">
+                    <div class="col-6">
                         <label class="form-label">试卷页码</label>
                         <input type="number" min="1" class="form-control form-control-sm" id="input-qpage" value="1">
                     </div>
-                    <div class="col-4">
+                    <div class="col-6">
                         <label class="form-label">答案页码</label>
                         <input type="number" min="1" class="form-control form-control-sm" id="input-apage" value="1">
-                    </div>
-                    <div class="col-4">
-                        <label class="form-label">大纲页码</label>
-                        <input type="number" min="1" class="form-control form-control-sm" id="input-spage" value="1">
                     </div>
                 </div>
                 <div class="mt-auto pt-2">
@@ -243,7 +239,6 @@
     const unitSelect = document.getElementById('input-unit');
     const qpageInput = document.getElementById('input-qpage');
     const apageInput = document.getElementById('input-apage');
-    const spageInput = document.getElementById('input-spage');
     const pdfViewer = document.getElementById('pdf-viewer');
     const pdfTitle = document.getElementById('pdf-title');
     const pdfMeta = document.getElementById('pdf-meta');
@@ -313,13 +308,15 @@
         return unitsCache.find(u => String(u.id) === String(unitId)) || null;
     }
 
-    function syncSyllabusInput(unitId, preferredPage = null) {
+    function syncSyllabusState(unitId, preferredPage = null) {
         let page = preferredPage;
+        if (typeof page === 'string') {
+            page = parseInt(page, 10);
+        }
         if (!page || page < 1) {
             const unit = findUnitById(unitId);
             page = unit ? (unit.syllabus_page || 1) : 1;
         }
-        spageInput.value = page;
         pageState.syllabus = page;
         if (currentPdfType === 'syllabus') {
             pageInput.value = page;
@@ -329,20 +326,7 @@
                 loadPdf('syllabus', page);
             }
         }
-        return page;
-    }
-
-    function updateUnitSyllabusCache(unitId, page) {
-        if (!unitId) return;
-        const unit = findUnitById(unitId);
-        if (unit) {
-            unit.syllabus_page = page;
-        }
-        Array.from(unitSelect.options).forEach(opt => {
-            if (opt.value === String(unitId)) {
-                opt.dataset.syllabusPage = page;
-            }
-        });
+        return page || 1;
     }
 
     function loadUnits() {
@@ -363,10 +347,10 @@
                 });
                 if (prevUnit && findUnitById(prevUnit)) {
                     unitSelect.value = prevUnit;
-                    syncSyllabusInput(prevUnit);
+                    syncSyllabusState(prevUnit);
                 } else {
                     unitSelect.value = '';
-                    syncSyllabusInput(null);
+                    syncSyllabusState(null);
                 }
             })
             .catch(err => console.error('Load units error', err));
@@ -449,7 +433,7 @@
         }
         qpageInput.value = q.qpage || 1;
         apageInput.value = q.apage || 1;
-        const syllabusPage = syncSyllabusInput(q.unit_id, q.syllabus_page || null);
+        const syllabusPage = syncSyllabusState(q.unit_id, q.syllabus_page || null);
         pageState.qp = q.qpage || 1;
         pageState.ms = q.apage || 1;
         pageState.syllabus = syllabusPage;
@@ -464,10 +448,9 @@
         codeInput.value = currentPrefix ? `${currentPrefix}-Q${questionsCache.length + 1}` : '';
         qpageInput.value = 1;
         apageInput.value = 1;
-        const unit = findUnitById(unitSelect.value);
-        const unitPage = unit ? (unit.syllabus_page || 1) : 1;
-        spageInput.value = unitPage;
-        pageState = { qp: 1, ms: 1, syllabus: unitPage };
+        pageState = { qp: 1, ms: 1, syllabus: 1 };
+        const unitPage = syncSyllabusState(unitSelect.value);
+        pageState.syllabus = unitPage;
         pageInput.value = pageState[currentPdfType];
         markActiveQuestion('');
         updatePdfTitle();
@@ -626,7 +609,6 @@
             unit_id: unitSelect.value,
             qpage: qpageInput.value || 1,
             apage: apageInput.value || 1,
-            syllabus_page: spageInput.value || '',
         };
         if (currentQuestionId) payload.id = currentQuestionId;
         postForm('/api/questions/save/', payload)
@@ -634,11 +616,6 @@
                 if (data.success) {
                     showToast('Saved!');
                     currentQuestionId = data.id;
-                    if (unitSelect.value) {
-                        const pageVal = Math.max(1, parseInt(spageInput.value, 10) || 1);
-                        updateUnitSyllabusCache(unitSelect.value, pageVal);
-                        pageState.syllabus = pageVal;
-                    }
                     loadQuestions(data.code);
                 } else {
                     alert(data.error || '保存失败');
@@ -669,7 +646,7 @@
     });
 
     unitSelect.addEventListener('change', () => {
-        syncSyllabusInput(unitSelect.value);
+        syncSyllabusState(unitSelect.value);
     });
 
     document.getElementById('btn-new-question').addEventListener('click', (e) => {
@@ -725,8 +702,6 @@
             qpageInput.value = pageState.qp;
         } else if (currentPdfType === 'ms') {
             apageInput.value = pageState.ms;
-        } else {
-            spageInput.value = pageState.syllabus;
         }
     }
 
@@ -755,17 +730,6 @@
                 goToPageInViewer(pageState.ms);
             } else {
                 loadPdf('ms', pageState.ms);
-            }
-        }
-    });
-    spageInput.addEventListener('change', () => {
-        pageState.syllabus = Math.max(1, parseInt(spageInput.value, 10) || 1);
-        if (currentPdfType === 'syllabus') {
-            pageInput.value = pageState.syllabus;
-            if (pdfCurrentFileUrl) {
-                goToPageInViewer(pageState.syllabus);
-            } else {
-                loadPdf('syllabus', pageState.syllabus);
             }
         }
     });

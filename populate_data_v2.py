@@ -61,7 +61,7 @@ for i, name in enumerate(unit_names, 1):
     Unit.objects.get_or_create(
         subject=cs_subject,
         unit_num=i,
-        defaults={'name': name}
+        defaults={'name': name, 'syllabus_page': 1},
     )
 
 print(f"Created {len(unit_names)} units for A-Level CS")
