@@ -235,7 +235,22 @@ X_FRAME_OPTIONS=SAMEORIGIN
 uv sync --no-dev
 ```
 
-See `DEPLOYMENT.md` for detailed deployment guide.
+### Docker / 1Panel Deployment
+
+This repository now includes:
+
+- `Dockerfile`
+- `docker-compose.yml`
+- `.env.example`
+- `.github/workflows/docker-image.yml`
+
+You can:
+
+- build and push the image manually to GHCR
+- let GitHub Actions publish the image automatically on push
+- deploy it on 1Panel with a persistent `/data` volume for SQLite and media
+
+See `DEPLOYMENT.md` for the full guide.
 
 ## 📚 Documentation
 

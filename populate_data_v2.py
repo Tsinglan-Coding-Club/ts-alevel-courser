@@ -126,7 +126,7 @@ for pp_data in past_papers_data:
 
 print(f"Created {len(past_papers_data)} past papers")
 
-print("\n✅ Data population completed!")
+print("\nData population completed.")
 print(f"Subjects: {Subject.objects.count()}")
 print(f"Units: {Unit.objects.count()}")
 print(f"Questions: {Question.objects.count()}")

@@ -1,0 +1,14 @@
+services:
+  web:
+    image: ${IMAGE_NAME:-ghcr.io/your-org/ts-alevel-courser:latest}
+    container_name: ts-alevel-courser
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    env_file:
+      - .env
+    volumes:
+      - ts_alevel_courser_data:/data
+
+volumes:
+  ts_alevel_courser_data:
